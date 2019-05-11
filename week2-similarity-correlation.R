@@ -125,7 +125,7 @@ df$marital_status = as.numeric(df$marital_status)
 df$marital_status = df$marital_status - 1
 df$marital_status = df$marital_status / 2 # now it is 0, 0.5, 1 ie in range 0 to 1
 
-# rescale income
+# rescale income: minus min and divide by range (max - min)
 min(income)
 max(income)
 max(income) - min(income)
@@ -133,14 +133,13 @@ max(income) - min(income)
 df$income = df$income - 60
 df$income = df$income / 160
 
-df$cheat = as.logical(df$cheat)
-
+# calculate similarity between subjects 5 and 7
 df[5,]
 df[7,]
 
 # similarity between 5 and 7
 # binary so just 1 if same otherwise 0
-o51 = 0
+o51 = 0 # o51 is first variable for subject 5
 o71 = 1
 # so
 s571 = 0
@@ -165,7 +164,7 @@ s574 = 0
 
 S = (s571+s572+s573+s574)/4
 
-# similarity between 6 and 8
+# similarity between subjects 6 and 8
 df[6,]
 df[8,]
 
@@ -184,3 +183,19 @@ s3 = 1 - abs(0-0.15625)
 s4 = 0
 
 S = (s1+s2+s3+s4)/4
+
+# can use daisy() function from cluster package
+library(cluster)
+
+refund = c(1, 0, 0, 1, 0, 0, 1, 0, 0, 0)
+marital_status = c(s, m, s, m, d, m, d, s, m, s)
+income = c(125, 100, 70, 120, 95, 60, 220, 85, 75, 90)
+cheat = c(n, n, n, n, y, n, n, y, n, y)
+df = cbind.data.frame(refund, marital_status, income, cheat)
+df$marital_status = factor(df$marital_status, levels = c('single', 'married', 'divorced'), ordered = T)
+
+
+dis = daisy(df, metric = 'gower', type = list(symm = c(1, 4)))
+# daisy calculates the dissimilartiy - need to convert to similarity
+# d = 1-s ; s = 1-d
+(sim = 1 - dis)
