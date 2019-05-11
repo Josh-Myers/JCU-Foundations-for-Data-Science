@@ -1,0 +1,47 @@
+
+
+
+```{r echo=TRUE}
+
+
+fact_Gender =  factor(c('M','F','NA','M','F','F','M','NA' ))
+#as.numeric(fact_Gender)
+#fact_Gender
+levels(fact_Gender)
+#levels(fact_Gender)[2]<-'Male' #updating levels will update values
+#fact_Gender
+fact_Gender[3]<-'N/A' #invalid as N/A is not existing level
+fact_Gender[3]<-'M'   #ok
+fact_Gender
+```
+
+# Internal Storage in Factor
+
+```{r echo=TRUE}
+# The general way to convert a factor to character is with as.character()
+fact_Gender =  factor(c('M','F','NA','M','F','F','M','NA' ))
+#as.character(fact_Gender)
+
+#as.numeric(fact_Gender)
+
+size <- factor (c(2, 3, 1, 5, 3, 2, 1,4), levels=1:6, labels=c("S","S/M", "M", "L", "XL","XXL"))
+size <- factor (c(2, 3, 1, 5, 3, 2, 1,4), levels=1:6)
+
+size
+table(size)
+table (size[,drop=T]) #drop unused levels
+
+
+
+```
+
+
+
+# Numeric Factor
+```{r echo=TRUE}
+num_fac<-factor (c(5, 6, 17, 9, 13, 'Test')) 
+as.numeric(num_fac)
+as.numeric(as.character(num_fac))
+
+```
+

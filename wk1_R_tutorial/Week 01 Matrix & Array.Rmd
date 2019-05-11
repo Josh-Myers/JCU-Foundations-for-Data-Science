@@ -1,0 +1,94 @@
+
+
+
+```{r echo=TRUE}
+#mtx<-matrix (1:12, nrow = 4)
+#mtx<-matrix (1:12, nrow = 4, ncol=2)
+mtx<-matrix (1:12, nrow = 4, ncol=3)
+
+mtx
+t(mtx)
+mtx%*%t(mtx)
+```
+
+# Matrix Subscripting
+
+```{r echo=TRUE}
+mtx<-matrix (1:12, nrow = 4, ncol=3)
+#mtx[3,2]
+#mtx[1:3, c(1,3)]
+#mtx[2,]
+v<-mtx[,3] #these results are vectors, not matrices with one row/column.
+
+v
+
+mtx[,3] > 10 #logic operation
+
+
+
+```
+
+
+
+# logical/arithmatic operation
+```{r echo=TRUE}
+mtx<-matrix (1:12, nrow = 4, ncol=3)
+#mtx
+#mtx > 10 #logic operation
+#mtx+10
+
+#mtx[mtx[,2] > 5,] #rows where mtx[,2]>5 and all rows
+
+#mtx > 5    #logical matrix
+
+#mtx[mtx<5]  # all values >5 in a vector
+
+#matrix (letters[1:12], nrow = 3, byrow = T) #character matrix try 
+
+mtx_l<-matrix (letters[1:12], nrow = 3, byrow = F)
+
+dim(mtx_l) #dimension by rows cols
+
+```
+
+
+# row and column names
+```{r echo=TRUE}
+
+
+mtx_l<-matrix (letters[1:12], nrow = 3, byrow = F)
+
+dimnames(mtx_l) <- list (c("a-j", "b-k", "c-l"), c("a-c", "d-f", "g-i","j-l"))
+mtx_l
+mtx_l["b-k","g-i"]
+
+c<-c(1,13,0)
+mat <- matrix (c(2, 1, -1, 3, 4, 2, 1, -5, -2), nrow=3, byrow=T)
+mat
+solve(mat,c)
+```
+
+
+# Solving Linear Systems
+```{r echo=TRUE}
+
+# 2x+y-z=1
+# 3x+4y+2z=13
+# x-5y-2z=0
+
+c<-c(1,13,0)
+mat <- matrix (c(2, 1, -1, 3, 4, 2, 1, -5, -2), nrow=3, byrow=T)
+#mat
+#solve (mat) %*% c
+#solve(mat,c)
+
+# x+y+2z=-2
+# 3x-y+14z=6
+# x+2y+3z=-5
+c<-c(-2,6,-5)
+#mat <- matrix (c(1, 1, 2, 3, -1, 14, 1, 2, 3), nrow=3, byrow=T)
+#mat
+#solve(mat,c)
+
+
+```

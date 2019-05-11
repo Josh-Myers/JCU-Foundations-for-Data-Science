@@ -187,6 +187,7 @@ S = (s1+s2+s3+s4)/4
 # can use daisy() function from cluster package
 library(cluster)
 
+# it will scale the data for us, so recreate the dataset unscaled
 refund = c(1, 0, 0, 1, 0, 0, 1, 0, 0, 0)
 marital_status = c(s, m, s, m, d, m, d, s, m, s)
 income = c(125, 100, 70, 120, 95, 60, 220, 85, 75, 90)
@@ -194,8 +195,7 @@ cheat = c(n, n, n, n, y, n, n, y, n, y)
 df = cbind.data.frame(refund, marital_status, income, cheat)
 df$marital_status = factor(df$marital_status, levels = c('single', 'married', 'divorced'), ordered = T)
 
-
-dis = daisy(df, metric = 'gower', type = list(symm = c(1, 4)))
+dis = daisy(df, metric = 'gower', type = list(symm = c(1, 4))) # symm forces binary variables to be symmetric
 # daisy calculates the dissimilartiy - need to convert to similarity
 # d = 1-s ; s = 1-d
 (sim = 1 - dis)
