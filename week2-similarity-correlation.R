@@ -106,7 +106,81 @@ q <- c(1,	1,	4, -2,	3, -1,	4)
 cor(p, q, method = "spearman")
 
 
+# Computing Gower's distance
+# create data
+s = 'single'
+m = 'married'
+d = 'divorced'
+n = 0
+y = 1
+refund = c(1, 0, 0, 1, 0, 0, 1, 0, 0, 0)
+marital_status = c(s, m, s, m, d, m, d, s, m, s)
+income = c(125, 100, 70, 120, 95, 60, 220, 85, 75, 90)
+cheat = c(n, n, n, n, y, n, n, y, n, y)
+df = cbind.data.frame(refund, marital_status, income, cheat)
+df$marital_status = factor(df$marital_status, levels = c('single', 'married', 'divorced'), ordered = T)
 
+# make factor from 0 to 1
+df$marital_status = as.numeric(df$marital_status)
+df$marital_status = df$marital_status - 1
+df$marital_status = df$marital_status / 2 # now it is 0, 0.5, 1 ie in range 0 to 1
 
+# rescale income
+min(income)
+max(income)
+max(income) - min(income)
 
+df$income = df$income - 60
+df$income = df$income / 160
 
+df$cheat = as.logical(df$cheat)
+
+df[5,]
+df[7,]
+
+# similarity between 5 and 7
+# binary so just 1 if same otherwise 0
+o51 = 0
+o71 = 1
+# so
+s571 = 0
+
+# this one is ordinal so treat as numeric 1 - |x - y|
+o52 = 1
+o72 = 1
+
+s572 = 1 - abs(1-1) # 1
+
+# income is numeric
+o53 = 0.21
+o73 = 1
+
+s573 = 1 - abs(s53 - s73)
+
+# Cheat is binary
+o54 = 1
+o74 = 0
+# they are different so 0
+s574 = 0
+
+S = (s571+s572+s573+s574)/4
+
+# similarity between 6 and 8
+df[6,]
+df[8,]
+
+# var1 - binary
+# they are same so 
+s1 = 1
+
+# var2 - ordinal - treat as numeric
+s2 = 1 - abs(0.5-0) # 0.5
+
+# var3 = numeric
+s3 = 1 - abs(0-0.15625)
+
+# var4 = binary
+# they are different so 0
+s4 = 0
+
+S = (s1+s2+s3+s4)/4
