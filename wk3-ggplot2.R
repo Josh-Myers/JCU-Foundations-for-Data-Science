@@ -71,3 +71,26 @@ ordered_countries <- reorder(CIACountries_Sample$country,CIACountries_Sample$pop
 G <- G %+% CIACountries_Sample # Update the data mapped to graph G
 G
 
+# Density plots
+ggplot(data = CIACountries, mapping = aes(pop)) + geom_density() + scale_x_log10()
+
+# adjust the bandwidth
+ggplot(data = CIACountries, mapping = aes(pop)) + geom_density(adjust = 2) + scale_x_log10()
+ggplot(data = CIACountries, mapping = aes(pop)) + geom_density(adjust = 0.2) + scale_x_log10()
+
+ggplot(data = diamonds, mapping = aes(x = color, y = carat)) + geom_boxplot()
+
+ggplot(data = diamonds, mapping = aes(x = clarity, y = carat)) + geom_boxplot()
+ggplot(data = diamonds, mapping = aes(x = cut, y = carat)) + geom_boxplot()
+
+
+# topic 1 discussion
+MyGraph + facet_wrap(c("trans"), ncol = 1)
+MyGraph + facet_grid(trans ~ .)
+
+plot = ggplot(data = mpg, aes(x=hwy, y=cty)) + geom_point()
+plot + facet_wrap(c('class'))
+plot + facet_grid(class ~ .)
+
+
+
