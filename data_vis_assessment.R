@@ -1,4 +1,5 @@
 # Data Vis Assessment
+# import and wrangle data----
 Data = read.table('http://archive.ics.uci.edu/ml/machine-learning-databases/credit-screening/crx.data', header = F, sep = ',', na.strings = '?', )
 names(Data) <- c("Gender", "Age", "MonthlyExpenses", "MaritalStatus", "HomeStatus", "Occupation", "BankingInstitution", "YearsEmployed", 
                  "NoPriorDefault", "Employed", "CreditScore", "DriversLicense", "AccountType", "MonthlyIncome", "AccountBalance", "Approved")
@@ -28,7 +29,7 @@ sum(is.na(Data)) # 67
 Data = na.omit(Data)
 num_rm = initial - nrow(Data) # 37 rows removed 
 
-# Proximity measures
+# Proximity measures----
 library(cluster)
 Dist <- daisy(Data, metric = 'gower')
 Dist_sym <- daisy(Data, metric = 'gower', type = list(symm=c('Gender', 'NoPriorDefault', 'Employed', 'DriversLicense', 'Approved'))) 
@@ -40,9 +41,27 @@ summary(Dist)
 Dist <- as.matrix(Dist)
 dim(Dist)
 
+# do a check - compare a pair that should be similar and a pair that should be dissimilar
+# This is the most similar pair - makes sense, they are very similar
+Data[which(Dist == min(Dist[Dist != min(Dist)]), arr.ind = TRUE)[1, ], ]
+
+# Most dissimilar pair - seems reasonable
+Data[which(Dist == max(Dist[Dist != max(Dist)]), arr.ind = TRUE)[1, ], ]
+
+#Note – red is 0 then yellow, green, blue is higher (closer to 1)
+#The pattern is because successes and failures are grouped together in the dataset
+#Randomly reorder rows before daisy – pattern should disappear (except for red line)
+
 dim <- ncol(Dist)  # used to define axis in image
 image(1:dim, 1:dim, Dist, axes = FALSE, xlab="", ylab="", col = rainbow(100))
 heatmap(Dist, Rowv=TRUE, Colv="Rowv", symm = TRUE)
+
+# The pattern is because accepted and rejected are grouped together - randomly reshuffle - should go away
+rand <- sample(nrow(Data))
+Data_rand = Data[rand, ]
+Dist_rand <- daisy(Data_rand, metric = 'gower')  
+Dist_rand <- as.matrix(Dist_rand)
+image(1:dim, 1:dim, Dist_rand, axes = FALSE, xlab="", ylab="", col = rainbow(100)) # evenly distributed now
 
 # it's a heatmap and some are closer than others
 # this colour are closer together, others are further apart
@@ -52,7 +71,7 @@ Data_numeric = Data[, numeric_cols]
 pearson_cor = cor(Data_numeric, method = 'pearson')
 spearman_cor = cor(Data_numeric, method = 'spearman')
 
-# boxplots
+# boxplots----
 summary(Data$AccountBalance)
 # This variable is left skewed so I will log transform (+ 1)
 library(ggthemes)
@@ -134,7 +153,60 @@ age_p = ggplot(data = Data, aes(x=Approved,  y=Age, group=Approved, colour=Appro
   scale_colour_colorblind() 
 age_p
 
-# free plots
+# bar plots----
+# Employed
+employed_p = ggplot(data=Data, aes(x=Employed, fill=Approved)) + 
+  geom_bar(position="dodge") +
+  ggtitle('Employment status and credit card application outcome') +
+  xlab('Employed') + 
+  scale_x_discrete(labels=c("f" = "No", "t" = "Yes")) +
+  theme_minimal() +
+  theme(plot.title = element_text(face='bold', hjust = 0.5, vjust = 0.5)) +
+  scale_fill_colorblind() 
+employed_p
+
+# MaritalStatus  
+# u = unmarried; y = yes; l must be 'living together'
+# only 2 living together - both approved
+# consider removing - just put a note
+filter(Data, MaritalStatus=='l')
+marital_p = ggplot(data=Data, aes(x=MaritalStatus, fill=Approved)) + 
+  geom_bar(position="dodge") +
+  ggtitle('Marital status and credit card application outcome') +
+  xlab('Marital Status') + 
+  scale_x_discrete(labels=c("l" = "Living together", "u" = "Unmarried", 'y'='Married')) +
+  theme_minimal() +
+  theme(plot.title = element_text(face='bold', hjust = 0.5, vjust = 0.5)) +
+  scale_fill_colorblind() 
+marital_p
+
+# interestingly married people are less likely to be approved
+
+# BankingInstitution 
+bank_p = ggplot(data=Data, aes(x=BankingInstitution, fill=Approved)) + 
+  geom_bar(position="dodge") +
+  ggtitle('Banking institution and credit card application outcome') +
+  xlab('Banking Institution') + 
+  #scale_x_discrete(labels=c("l" = "Living together", "u" = "Unmarried", 'y'='Married')) +
+  theme_minimal() +
+  theme(plot.title = element_text(face='bold', hjust = 0.5, vjust = 0.5)) +
+  scale_fill_colorblind() 
+bank_p
+# think about ordering this one
+
+# NoPriorDefault
+default_p = ggplot(data=Data, aes(x=NoPriorDefault, fill=Approved)) + 
+  geom_bar(position="dodge") +
+  ggtitle('Prior default and credit card application outcome') +
+  xlab('Prior Default') + 
+  scale_x_discrete(labels=c("f" = "Yes", "t" = "No")) + # this seems weird but the variable is "no prior default" I am presenting as "prior default" y/n
+  theme_minimal() +
+  theme(plot.title = element_text(face='bold', hjust = 0.5, vjust = 0.5)) +
+  scale_fill_colorblind() 
+default_p
+# very powerful explanatory variable
+
+# free plots (EDA) ----
 # do a plot monthly expenses by age - I'm curious about all the $0 monthly expenses
 # can use my marginal density plots here
 
