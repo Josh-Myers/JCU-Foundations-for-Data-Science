@@ -1,6 +1,9 @@
 # Data Vis Assessment
 # import and wrangle data----
 Data = read.table('http://archive.ics.uci.edu/ml/machine-learning-databases/credit-screening/crx.data', header = F, sep = ',', na.strings = '?', )
+
+info = read.table('http://archive.ics.uci.edu/ml/machine-learning-databases/credit-screening/crx.names', header = F, sep = ',')
+
 names(Data) <- c("Gender", "Age", "MonthlyExpenses", "MaritalStatus", "HomeStatus", "Occupation", "BankingInstitution", "YearsEmployed", 
                  "NoPriorDefault", "Employed", "CreditScore", "DriversLicense", "AccountType", "MonthlyIncome", "AccountBalance", "Approved")
 Data$Gender <- as.factor(Data$Gender) # symmetric binary
@@ -14,7 +17,7 @@ Data$YearsEmployed <- as.numeric(Data$YearsEmployed) # numeric float
 Data$NoPriorDefault <- as.factor(Data$NoPriorDefault) # symmetric binary 
 Data$Employed <- as.factor(Data$Employed) # symmetric binary  
 Data$CreditScore <- as.numeric(Data$CreditScore) # numeric float
-Data$DriversLicense <- as.factor(Data$DriversLicense) # symmetric binary - I think this could be asymmetric - maybe more informative if no license - but is fairly evenly distributed between y and n so keep as symmetric
+Data$DriversLicense <- as.factor(Data$DriversLicense) # symmetric binary 
 Data$AccountType <- as.factor(Data$AccountType) # nominal
 Data$MonthlyIncome <- as.integer(Data$MonthlyIncome) # numeric int
 Data$AccountBalance <- as.numeric(Data$AccountBalance) # numeric float
@@ -78,7 +81,7 @@ library(ggthemes)
 acc_bal_p = ggplot(data = Data, aes(x=Approved,  y=AccountBalance + 1, group=Approved, colour=Approved)) + 
   geom_boxplot() + 
   geom_point(position=position_jitterdodge(), alpha=0.1) +
-  ggtitle('Account balance and credit card application outcome') +
+  ggtitle('Account Balance and Credit Card Application Outcome') +
   ylab('Bank Account Balance + 1 ($)') + 
   xlab('Credit Card Application Approved') + 
   scale_x_discrete(labels=c("-" = "No", "+" = "Yes")) +
@@ -96,7 +99,7 @@ acc_bal_p
 mth_exp_p = ggplot(data = Data, aes(x=Approved,  y=MonthlyExpenses * 100, group=Approved, colour=Approved)) + 
   geom_boxplot() + 
   geom_point(position=position_jitterdodge(), alpha=0.1) +
-  ggtitle('Monthly expenses and credit card application outcome') +
+  ggtitle('Monthly Expenses and Credit Card Application Outcome') +
   ylab('Montly Expenses ($)') + 
   xlab('Credit Card Application Approved') + 
   scale_x_discrete(labels=c("-" = "No", "+" = "Yes")) +
@@ -112,7 +115,7 @@ mth_exp_p
 credit_score_p = ggplot(data = Data, aes(x=Approved,  y=CreditScore + 1, group=Approved, colour=Approved)) + 
   geom_boxplot() + 
   geom_point(position=position_jitterdodge(), alpha=0.1) +
-  ggtitle('Credit score and credit card application outcome') +
+  ggtitle('Credit Score and Credit Card Application Outcome') +
   ylab('Credit Score + 1') + 
   xlab('Credit Card Application Approved') + 
   scale_x_discrete(labels=c("-" = "No", "+" = "Yes")) +
@@ -127,7 +130,7 @@ credit_score_p
 # credit_score_p_sqrt = ggplot(data = Data, aes(x=Approved,  y=CreditScore, group=Approved, colour=Approved)) + 
 #   geom_boxplot() + 
 #   geom_point(position=position_jitterdodge(), alpha=0.1) +
-#   ggtitle('Credit score and credit card application outcome') +
+#   ggtitle('Credit Score and Credit Card Application Outcome') +
 #   ylab('Credit Score') + 
 #   xlab('Credit Card Application Approved') + 
 #   scale_x_discrete(labels=c("-" = "No", "+" = "Yes")) +
@@ -142,7 +145,7 @@ credit_score_p
 age_p = ggplot(data = Data, aes(x=Approved,  y=Age, group=Approved, colour=Approved)) + 
   geom_boxplot() + 
   geom_point(position=position_jitterdodge(), alpha=0.1) +
-  ggtitle('Age and credit card application outcome') +
+  ggtitle('Age and Credit Card Application Outcome') +
   ylab('Age') + 
   xlab('Credit Card Application Approved') + 
   scale_x_discrete(labels=c("-" = "No", "+" = "Yes")) +
@@ -154,11 +157,21 @@ age_p = ggplot(data = Data, aes(x=Approved,  y=Age, group=Approved, colour=Appro
 age_p
 
 # bar plots----
+# change approved to no and yes
+
+Data$Approved =  fct_recode(Data$Approved, 'No' = '-', 'Yes' = '+')
+
+#Data$Approved = as.character(Data$Approved)
+#Data$Approved[Data$Approved == '-'] = 'No'
+#Data$Approved[Data$Approved == '+'] = 'Yes'
+#Data$Approved = factor(Data$Approved, levels = c('No', 'Yes'))
+
 # Employed
 employed_p = ggplot(data=Data, aes(x=Employed, fill=Approved)) + 
   geom_bar(position="dodge") +
-  ggtitle('Employment status and credit card application outcome') +
+  ggtitle('Employment Status and Credit Card Application Outcome') +
   xlab('Employed') + 
+  ylab('Count') +
   scale_x_discrete(labels=c("f" = "No", "t" = "Yes")) +
   theme_minimal() +
   theme(plot.title = element_text(face='bold', hjust = 0.5, vjust = 0.5)) +
@@ -172,8 +185,9 @@ employed_p
 filter(Data, MaritalStatus=='l')
 marital_p = ggplot(data=Data, aes(x=MaritalStatus, fill=Approved)) + 
   geom_bar(position="dodge") +
-  ggtitle('Marital status and credit card application outcome') +
+  ggtitle('Marital Status and Credit Card Application Outcome') +
   xlab('Marital Status') + 
+  ylab('Count') +
   scale_x_discrete(labels=c("l" = "Living together", "u" = "Unmarried", 'y'='Married')) +
   theme_minimal() +
   theme(plot.title = element_text(face='bold', hjust = 0.5, vjust = 0.5)) +
@@ -183,22 +197,27 @@ marital_p
 # interestingly married people are less likely to be approved
 
 # BankingInstitution 
+Data$BankingInstitution = fct_infreq(Data$BankingInstitution)
+
 bank_p = ggplot(data=Data, aes(x=BankingInstitution, fill=Approved)) + 
   geom_bar(position="dodge") +
-  ggtitle('Banking institution and credit card application outcome') +
+  ggtitle('Banking Institution and Credit Card Application Outcome') +
   xlab('Banking Institution') + 
-  #scale_x_discrete(labels=c("l" = "Living together", "u" = "Unmarried", 'y'='Married')) +
+  ylab('Count') +
+  scale_x_discrete(labels=c(LETTERS[1:9])) +
   theme_minimal() +
   theme(plot.title = element_text(face='bold', hjust = 0.5, vjust = 0.5)) +
   scale_fill_colorblind() 
 bank_p
 # think about ordering this one
+# change the labels to A, B, C
 
 # NoPriorDefault
 default_p = ggplot(data=Data, aes(x=NoPriorDefault, fill=Approved)) + 
   geom_bar(position="dodge") +
-  ggtitle('Prior default and credit card application outcome') +
+  ggtitle('Prior Default and Credit Card Application Outcome') +
   xlab('Prior Default') + 
+  ylab('Count') +
   scale_x_discrete(labels=c("f" = "Yes", "t" = "No")) + # this seems weird but the variable is "no prior default" I am presenting as "prior default" y/n
   theme_minimal() +
   theme(plot.title = element_text(face='bold', hjust = 0.5, vjust = 0.5)) +
@@ -209,4 +228,6 @@ default_p
 # free plots (EDA) ----
 # do a plot monthly expenses by age - I'm curious about all the $0 monthly expenses
 # can use my marginal density plots here
+
+# plot age by mthly expenses - i'm interested in ppl with $0 mthly expenses - are they younger?
 
