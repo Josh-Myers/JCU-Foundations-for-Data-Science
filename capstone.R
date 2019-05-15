@@ -9,6 +9,7 @@
 
 
 library(tidyverse)
+theme_set(theme_minimal())
 library(readxl)
 
 # from here: https://www.bitre.gov.au/statistics/safety/fatal_road_crash_database.aspx
@@ -65,10 +66,10 @@ road_data$State = factor(road_data$State, levels=c('NSW', 'Vic', 'Qld', 'WA', 'S
 
 #need to count rows grouped by year
 # then line plot over time faceted by state
-state_p = ggplot(road_data, aes(x=Year, colour=State)) + 
+year_p = ggplot(road_data, aes(x=Year, colour=State)) + 
   geom_line(stat="count") +
   ylab('Number of Deaths')
-state_p
+year_p
 
 # create df deaths each year by state
 deaths_by_year_state = road_data %>% 
@@ -98,6 +99,7 @@ death_pop = death_pop %>%
 # plot proportions
 prop_p_10k = ggplot(death_pop, aes(x=Year, y=death_prop_per_10k, colour=State)) + 
   geom_line() +
+  geom_smooth(method = 'loess') +
   ylab('Number of Deaths per 10,000 People')
 prop_p_10k
 
@@ -106,6 +108,52 @@ prop_p = ggplot(death_pop, aes(x=Year, y=death_proportion, colour=State)) +
   ylab('Proportion of Deaths')
 prop_p
 
+prop_p_10k_smooth = ggplot(death_pop, aes(x=Year, y=death_prop_per_10k, colour=State)) + 
+  geom_smooth(method = 'loess') +
+  ylab('Number of Deaths per 10,000 People')
+prop_p_10k_smooth
+
+
+# testing size by proportion
+year_p2 = ggplot(death_pop, aes(x=Year, y=Deaths, colour=State)) + 
+  geom_line(aes(size=death_prop_per_10k)) +
+  #geom_smooth(method = 'loess') +
+  ylab('Number of Deaths per 10,000 People')
+year_p2
+# doesn't look good but an example of what I might be able to do
+
+# think about how to investigate whether xmas and easter periods are more dangerous
+
+# could try number of deaths by month animated by year
+library(gganimate)
+library(gifski)
+
+library(devtools)
+install_github('thomasp85/transformr')
+library(transformr)
+
+month_p = ggplot(road_data, aes(x=Month, colour=State, frame=Year)) + 
+  geom_line(stat="count") +
+  ylab('Number of Deaths') +
+  scale_x_continuous(breaks = c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12), 
+                     labels=c('J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D')) +
+  # gganimate code
+  ggtitle("Year: {frame_time}") +
+  transition_time(Year) +
+  ease_aes("linear") +
+  enter_fade() +
+  exit_fade()
+
+animate(month_p, width = 450, height = 450)
+
+
+# and day of week animated by month
+
+# number of deaths can be a size of a point also??
+
+
+# conclusion
+# could be used to inform public policy 
 
 
 
