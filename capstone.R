@@ -44,6 +44,7 @@ road_data = filter(road_data, Year != 2019)
 road_data = road_data %>% select(-`Crash ID`)
 road_data$State = factor(road_data$State, levels=c('NSW', 'Vic', 'Qld', 'WA', 'SA', 'Tas', 'ACT', 'NT'))
 
+
 # need to make long form
 
 # need to plot pop change over time by state 
@@ -69,13 +70,14 @@ state_p = ggplot(road_data, aes(x=Year, colour=State)) +
   ylab('Number of Deaths')
 state_p
 
-# double check
+# create df deaths each year by state
 deaths_by_year_state = road_data %>% 
   group_by(State, Year) %>% 
-  tally()
+  tally(name = 'Deaths')
   
+# join with state population info
+death_pop = full_join(deaths_by_year_state, state_pop_long, by=c('State', 'Year'))
 
-# Normalize for state population 
 # plot population
 state_pop_long = state_pop %>% 
   gather(key='Year', value='Population', 2:31)
@@ -83,22 +85,28 @@ names(state_pop_long)[1] = 'State'
 state_pop_long$Year = as.numeric(state_pop_long$Year)
 state_pop_long$State = factor(state_pop_long$State, levels = c('NSW', 'Vic', 'Qld', 'WA', 'SA', 'Tas', 'ACT', 'NT'))
 
-pop_p = ggplot(state_pop_long, aes(x=Year, y=Population, colour=State)) +
+pop_p = ggplot(state_pop_long, aes(x=Year, y=Population/1000000, colour=State)) +
   geom_line() +
-  # log axis??
+  ylab('Population (millions)')
 pop_p
 
-d2018 = road_data %>% 
-  filter(Year==2018) %>% 
-  group_by(State) %>% 
-  tally()
+# Normalize for state population 
+death_pop = death_pop %>% 
+  mutate(death_proportion = Deaths / Population) %>% 
+  mutate(death_prop_per_10k = death_proportion * 10000)
 
-norm_2018 = d2018$n / state_pop 
+# plot proportions
+prop_p_10k = ggplot(death_pop, aes(x=Year, y=death_prop_per_10k, colour=State)) + 
+  geom_line() +
+  ylab('Number of Deaths per 10,000 People')
+prop_p_10k
 
-# need to get state population by year - create another df
+prop_p = ggplot(death_pop, aes(x=Year, y=death_proportion, colour=State)) + 
+  geom_line() +
+  ylab('Proportion of Deaths')
+prop_p
 
-norm_2018_10k = norm_2018 * 10000 # number of deaths per 10,000 people 
-norm_2018_10k = as.data.frame(t(norm_2018_10k)) # NT is by far the most dangerous
+
 
 
 
