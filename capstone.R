@@ -107,7 +107,7 @@ day_p
 
 road_data$hour_int = as.integer(road_data$time_of_day)  
 # 12 pm to 11am for plotting
-road_data$hour_int = factor(road_data$hour_int, levels = c(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23)) 
+road_data$hour_int = factor(road_data$hour_int, levels = c(0:23)) 
 summary(road_data$hour_int)
 # 40 na - remove
 road_data_hour = road_data %>% 
@@ -147,7 +147,7 @@ death_pop_states = death_pop %>%
 death_pop_states$State = fct_drop(death_pop_states$State)
 
 # plot population by year for the States - probabily don't need to include this
-state_pop_p = ggplot(death_pop_states, aes(x=Year, y=Population/1000000, colour=State)) +
+state_pop_p = ggplot(death_pop_states, aes(x=Year, y=Population/1000000, colour=State)) + # millions
   geom_line() +
   ylab('Population (millions)') +
   scale_colour_colorblind() 
@@ -206,7 +206,7 @@ mc_2018 = mc_2018[2]
 total_2018 = car_truck_2018 + mc_2018
 
 prop_car_truck_deaths_2018 = car_truck_2018/total_2018
-prop_mc_deaths_2018 = mc_2018/total_2018 # Only 5% of vehicles on the road are mc, but they account for 20% of mv deaths 
+mc_prop_2018 = mc_2018/total_2018 # Only 5% of vehicles on the road are mc, but they account for 20% of mv deaths 
 
 # proportion of trucks involved in crash compared with census 2018
 # bus, heavy rigid, articulated trucks
@@ -223,6 +223,20 @@ heavy_rigid_prop_2018 = heavy_rigid_deaths_2018 / total # 0.06 of deaths (6%) an
 articulated_deaths_2018 = summary(as.factor(df_2018$`Articulated Truck Involvement`))[2]
 articulated_prop_2018 = articulated_deaths_2018 / total # 0.079 of deaths (~8%) and account for 0.005 of vehicles (heavily overrepresented 16 times as many)
 
+deaths_2018 = c(mc_prop_2018, bus_prop_2018, heavy_rigid_prop_2018, articulated_prop_2018)
+props_2018 = cbind.data.frame(prop_pop, deaths_2018)
+names(props_2018) = c('Population', 'Deaths')
+props_2018$user = c('Motorcycle', 'Bus', 'Heavy Rigid Truck', 'Articulated Truck')
+
+# need to make long
+props_2018 = props_2018 %>% 
+  gather('Group', 'Proportion', 1:2) %>% 
+  ggplot(aes(x=factor(user, levels=c('Bus', 'Heavy Rigid Truck', 'Articulated Truck', 'Motorcycle')), y=Proportion, colour=Group, fill=Group)) +
+  geom_bar(stat='identity', position = 'dodge') +
+  scale_color_colorblind() +
+  scale_fill_colorblind() +
+  xlab('Type of Vehicle')
+props_2018
 
 # speed limit
 speed_box_p = road_data %>% 
@@ -250,23 +264,14 @@ sex_bar_p
   
 # make age discrete
 # 0-17, 18-40, 40-60, 60+
-road_data = road_data %>% 
-  mutate(age_cat = cut(Age, breaks = c(0, 17, 41, 60, Inf), labels = c('0-17', '18-40', '41-60', '>60')))
-
-#age_cat = cut(road_data)
-  
-  df$category <- cut(df$a, 
-                     breaks=c(-Inf, 0.5, 0.6, Inf), 
-                     labels=c("low","middle","high"))
-  
-# 18
-# report summary statistics for age - 84 NA remove these
-age_sex_p = ggplot(road_data, aes(x=Year, group=Age)) +
-  geom_line(stat = 'count')
-age_sex_p
-
-
-
+age_p = road_data %>% 
+  drop_na(Age, Gender) %>% 
+  mutate(age_cat = cut(Age, breaks = c(-Inf, 16, 40, 60, Inf), labels = c('0-16', '17-40', '41-60', '>60'))) # %>% 
+  ggplot(aes(x=Year, colour=age_cat, linetype=Gender)) +
+  geom_line(stat = 'count') +
+  scale_fill_colorblind()
+age_p # young men dominate the numbers - improving, but still highest 
+ 
 # christmas and easter
 # Xmas period is 12 days beginning Dec 23
 # Easter period is 5 days beginning thursday before good friday
@@ -290,41 +295,6 @@ age_sex_p
 #   geom_line()
 # holiday_p
 
-# testing size by proportion
-year_p2 = ggplot(death_pop_states, aes(x=Year, y=Deaths, colour=State)) + 
-  geom_line(aes(size=death_prop_per_10k)) +
-  #geom_smooth(method = 'loess') +
-  ylab('Number of Deaths per 10,000 People')
-year_p2
-# doesn't look good but an example of what I might be able to do
-
-# think about how to investigate whether xmas and easter periods are more dangerous
-
-# could try number of deaths by month animated by year
-library(gganimate)
-library(gifski)
-
-library(devtools)
-install_github('thomasp85/transformr')
-library(transformr)
-
-month_p = ggplot(road_data, aes(x=Month, colour=State, frame=Year)) + 
-  geom_line(stat="count") +
-  ylab('Number of Deaths') +
-  scale_x_continuous(breaks = c(1:12), 
-                     labels=c(month.abb)) +
-  # gganimate code
-  ggtitle("Year: {frame_time}") +
-  transition_time(Year) +
-  ease_aes("linear") +
-  enter_fade() +
-  exit_fade()
-
-animate(month_p, width = 450, height = 450)
-
-# and day of week animated by month?
-
-# number of deaths can be a size of a point also??
 
 
 ## Report
