@@ -84,19 +84,28 @@ prop_pop = rbind(mc_prop, bus_prop, heavy_rigid_prop, articulated_prop)
 # get state populations so can normalize by pop - which is most dangerous
 
 # year, month day by state plots
-# fig 1 (a, b, c)
 year_p = ggplot(road_data, aes(x=Year, colour=State)) + 
   geom_line(stat="count") +
   ylab('Number of Deaths') +
   scale_colour_colorblind() 
 year_p
 
-mth_p = ggplot(road_data, aes(x=Month, colour=State)) +
+month_p = ggplot(road_data, aes(x=Month, colour=State)) +
   geom_line(stat = 'count') +
   ylab('Number of Deaths') +
   scale_x_continuous(breaks = 1:12, labels = month.abb) +
   scale_colour_colorblind() 
-mth_p
+month_p # no clear trend
+
+# animated mth
+month_p_ani = ggplot(road_data, aes(x=Month, colour=State, frame=Year)) +
+  geom_line(stat = 'count') +
+  ylab('Number of Deaths') +
+  scale_x_continuous(breaks = 1:12, labels = month.abb) +
+  scale_colour_colorblind() +
+  ggtitle("Year: {frame_time}") +
+  transition_time(Year)
+animate(month_p_ani, width = 450, height = 450) # any clear trends over time?
 
 day_p = ggplot(road_data, aes(x=Dayweek, group=State, colour=State)) +
   geom_line(stat = 'count') +
@@ -104,6 +113,17 @@ day_p = ggplot(road_data, aes(x=Dayweek, group=State, colour=State)) +
   scale_x_discrete(labels = c('Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun')) +
   scale_colour_colorblind() 
 day_p
+
+# animated day across mth
+day_p_ani = ggplot(road_data, aes(x=Dayweek, group=State, colour=State, frame=Month)) +
+  geom_line(stat = 'count') +
+  ylab('Number of Deaths') +
+  scale_x_discrete(labels = c('Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun')) +
+  scale_colour_colorblind() +
+ggtitle("Month: {frame_time}") +
+  transition_time(Month)
+animate(day_p_ani, width = 450, height = 450) # any clear trends over time?
+
 
 road_data$hour_int = as.integer(road_data$time_of_day)  
 # 12 pm to 11am for plotting
@@ -117,8 +137,17 @@ hour_p = ggplot(road_data_hour, aes(x=hour_int, group=State, colour=State)) +
   geom_line(stat = 'count') +
   ylab('Number of Deaths') +
   scale_color_colorblind()
-hour_p
+hour_p # 2-6pm is most deaths, secondary peak ~ midnight
   
+# animated hour
+hour_p_ani = ggplot(road_data_hour, aes(x=hour_int, group=State, colour=State, frame=as.numeric(Dayweek))) +
+  geom_line(stat = 'count') +
+  ylab('Number of Deaths') +
+  scale_color_colorblind() +
+  ggtitle("Day: {frame_time}") +
+  transition_time(as.numeric(Dayweek))
+animate(hour_p_ani, width = 450, height = 450) # any clear trends over time?
+
 # Make df deaths grouped by State
 deaths_by_year_state = road_data %>% 
   group_by(State, Year) %>% 
@@ -166,17 +195,17 @@ prop_p_10k = ggplot(death_pop_states, aes(x=Year, y=death_prop_per_10k, colour=S
   scale_colour_colorblind() 
 prop_p_10k
 
-# age by gender
-age_sex_df = road_data %>% 
-  drop_na(Gender)
-  
-age_p = ggplot(age_sex_df, aes(x=Gender, y=Age, colour=Gender)) +
-  #geom_boxplot() +
-  geom_violin() +
-  geom_point(position=position_jitterdodge(), alpha=0.01) +
-  scale_colour_colorblind() +
-  theme(legend.position = 'none')
-age_p
+# # age by gender
+# age_sex_df = road_data %>% 
+#   drop_na(Gender)
+#   
+# age_p = ggplot(age_sex_df, aes(x=Gender, y=Age, colour=Gender)) +
+#   #geom_boxplot() +
+#   geom_violin() +
+#   geom_point(position=position_jitterdodge(), alpha=0.01) +
+#   scale_colour_colorblind() +
+#   theme(legend.position = 'none')
+# age_p
   
 # road user
 summary(as.factor(road_data$`Road User`))
@@ -186,13 +215,12 @@ road_data = road_data %>%
   mutate(User = ifelse(`Road User`=='Motorcycle pillion passenger'|`Road User`=='Motorcycle rider', 'Motorcycle',
                        ifelse(`Road User`=='Driver'|`Road User`=='Passenger', 'Car/Truck', 
                               ifelse(`Road User`=='Pedestrian', 'Pedestrian', 
-                                     ifelse(`Road User`=='Pedal cyclist', 'Cyclist', NA)))))
-
+                                     ifelse(`Road User`=='Pedal cyclist', 'Cyclist', NA))))) 
+road_data$User = factor(road_data$User, levels = c('Car/Truck', 'Motorcycle', 'Pedestrian', 'Cyclist'))
 user_p = road_data %>% 
   drop_na(User) %>%  # drop 77 NA
-  factor(User, levels = c('Car/Truck', 'Motorcycle', ))
   ggplot(aes(x=Year, colour=User)) +
-  geom_line(stat = 'count')
+  geom_line(stat = 'count') 
 user_p
 
 # what proportion of deaths in 2018 were MC?
@@ -214,7 +242,7 @@ mc_prop_2018 = mc_2018/total_2018 # Only 5% of vehicles on the road are mc, but 
 df_2018 = road_data %>% 
   filter(Year==2018) 
 bus_deaths_2018 = summary(as.factor(df_2018$`Bus Involvement`))[2]
-total = nrow(bus_deaths_2018_data)
+total = nrow(df_2018)
 bus_prop_2018 = bus_deaths_2018/total # 0.02 of deaths, but 0.005 of vehicles on road # not heavily overrepresented (4 times as many) - and driving a lot of the time
 
 heavy_rigid_deaths_2018 = summary(as.factor(df_2018$`Heavy Rigid Truck Involvement`))[2]
@@ -238,23 +266,9 @@ props_2018 = props_2018 %>%
   xlab('Type of Vehicle')
 props_2018
 
-# speed limit
-speed_box_p = road_data %>% 
-  drop_na(c(`Speed Limit`,Gender)) %>% # drop 1340 NA speed limit and 23 na gender
-  ggplot(aes(x=Gender, y=`Speed Limit`, colour=Gender)) +
-  geom_violin() +
-  geom_point(position = position_jitterdodge(), alpha=0.01)
-speed_box_p
 
 # males vs females - far more males die on the road
-sex_p = road_data %>% 
-  drop_na(Gender) %>%  # rm 23 obs na for gender
-  ggplot(aes(x=Year, colour=Gender)) +
-  geom_line(stat = 'count') +
-  scale_colour_colorblind()
-sex_p
-
-# barplot x=speed, colour=sex
+# speed limit
 sex_bar_p = road_data %>% 
   drop_na(c(Gender, `Speed Limit`)) %>% 
   ggplot(aes(x=`Speed Limit`, fill=Gender)) +
@@ -262,14 +276,16 @@ sex_bar_p = road_data %>%
   scale_fill_colorblind()
 sex_bar_p
   
+# age over time
 # make age discrete
 # 0-17, 18-40, 40-60, 60+
+road_data$Gender = factor(road_data$Gender, levels = c('Male', 'Female'))
 age_p = road_data %>% 
   drop_na(Age, Gender) %>% 
-  mutate(age_cat = cut(Age, breaks = c(-Inf, 16, 40, 60, Inf), labels = c('0-16', '17-40', '41-60', '>60'))) # %>% 
+  mutate(age_cat = cut(Age, breaks = c(-Inf, 16, 40, 60, Inf), labels = c('0-16', '17-40', '41-60', '>60'))) %>% 
   ggplot(aes(x=Year, colour=age_cat, linetype=Gender)) +
   geom_line(stat = 'count') +
-  scale_fill_colorblind()
+  scale_colour_colorblind()
 age_p # young men dominate the numbers - improving, but still highest 
  
 # christmas and easter
