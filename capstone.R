@@ -75,14 +75,6 @@ articulated = mv_census[6]
 articulated_prop = articulated/total
 prop_pop = rbind(mc_prop, bus_prop, heavy_rigid_prop, articulated_prop)
 
-# Just use state:age columns
-
-# trends over time
-# plots showing interactions 
-# model lines
-
-# get state populations so can normalize by pop - which is most dangerous
-
 # year, month, day by state plots
 year_p = ggplot(road_data, aes(x=Year, colour=State)) + 
   geom_line(stat="count") +
@@ -260,7 +252,8 @@ road_data$User = factor(road_data$User, levels = c('Car/Truck', 'Motorcycle', 'P
 user_p = road_data %>% 
   drop_na(User) %>%  # drop 77 NA
   ggplot(aes(x=Year, colour=User)) +
-  geom_line(stat = 'count') 
+  geom_line(stat = 'count') +
+  scale_color_colorblind()
 user_p
 
 # what proportion of deaths in 2018 were MC?
@@ -328,28 +321,29 @@ age_p = road_data %>%
   scale_colour_colorblind()
 age_p # young men dominate the numbers - improving, but still highest 
  
-# christmas and easter
-# Xmas period is 12 days beginning Dec 23
-# Easter period is 5 days beginning thursday before good friday
-# total = 17 days / 365
-# summary(as.factor(road_data$`Christmas Period`))
-# summary(as.factor(road_data$`Easter Period`))
-# 
-# road_data = road_data %>% 
-#   mutate(Is_holiday = ifelse(`Christmas Period`=='Yes' | `Easter Period`=='Yes', 'Yes', 'No'))
-# 
-# # tally deaths
-# holiday_df = road_data %>% 
-#   group_by(Is_holiday, Year) %>% 
-#   tally(name = 'Deaths') 
-# 
-# # create number of deaths per day
-# holiday_df = holiday_df %>% 
-#   mutate(Deaths_per_day = ifelse(Is_holiday=='Yes', Deaths/17, Deaths/348)) # to get deaths per day if holiday /17 (17 days in holiday period), elso /348 (365-17)
-# 
-# holiday_p = ggplot(holiday_df, aes(x=Year, y=Deaths_per_day, colour=Is_holiday)) +
-#   geom_line()
-# holiday_p
+#christmas and easter
+#Xmas period is 12 days beginning Dec 23
+#Easter period is 5 days beginning thursday before good friday
+#total = 17 days / 365
+summary(as.factor(road_data$`Christmas Period`))
+summary(as.factor(road_data$`Easter Period`))
+
+road_data = road_data %>%
+  mutate(Is_holiday = ifelse(`Christmas Period`=='Yes' | `Easter Period`=='Yes', 'Yes', 'No'))
+
+# tally deaths
+holiday_df = road_data %>%
+  group_by(Is_holiday, Year) %>%
+  tally(name = 'Deaths')
+
+# create number of deaths per day
+holiday_df = holiday_df %>%
+  mutate(Deaths_per_day = ifelse(Is_holiday=='Yes', Deaths/17, Deaths/348)) # to get deaths per day if holiday /17 (17 days in holiday period), else /348 (365-17)
+
+holiday_p = ggplot(holiday_df, aes(x=Year, y=Deaths_per_day, colour=Is_holiday)) +
+  geom_line() +
+  scale_color_colorblind()
+holiday_p
 
 
 
@@ -361,6 +355,7 @@ age_p # young men dominate the numbers - improving, but still highest
 # males more at risk
 # mc more at risk of death that other vehicle types
 # busses, heavy rigid and articulated trucks all overrepreseted, articulated trucks heavily so
+# consider targeting interventions to these groups
 
 # could be used to inform public policy - target males and mc riders - improve safety for mc riders
 # NT has improved, but still higher risk of death than other states
