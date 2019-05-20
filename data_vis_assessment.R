@@ -1,5 +1,12 @@
 # Data Vis Assessment
-# import and wrangle data----
+# 1. import and wrangle data----
+library(tidyverse)
+library(ggExtra)
+library(cowplot)
+library(ggthemes)
+library(cluster)
+library(Hmisc)
+
 Data = read.table('http://archive.ics.uci.edu/ml/machine-learning-databases/credit-screening/crx.data', header = F, sep = ',', na.strings = '?')
 
 info = read.table('http://archive.ics.uci.edu/ml/machine-learning-databases/credit-screening/crx.names', header = F, sep = ',')
@@ -32,8 +39,7 @@ sum(is.na(Data)) # 67
 Data = na.omit(Data)
 num_rm = initial - nrow(Data) # 37 rows removed 
 
-# Proximity measures----
-library(cluster)
+# 2. Proximity measures----
 # don't need to specify type because they are factor - which are treated as symmetric by default
 # with binary variables (0,1) would need to specify type because they are treated as asymmetric by default
 Dist <- daisy(Data, metric = 'gower')
@@ -77,11 +83,9 @@ ssc = (ct[1,1]+ct[2,2])/sum(ct)
 jc = ct[2,2]/sum(ct)
 
 
-# boxplots----
+# 3. boxplots----
 summary(Data$AccountBalance)
 # This variable is left skewed so I will log transform (+ 1)
-library(ggplot2)
-library(ggthemes)
 acc_bal_p = ggplot(data = Data, aes(x=Approved,  y=AccountBalance + 1, group=Approved, colour=Approved)) + 
   geom_boxplot() + 
   geom_point(position=position_jitterdodge(), alpha=0.1) +
@@ -160,7 +164,7 @@ age_p = ggplot(data = Data, aes(x=Approved,  y=Age, group=Approved, colour=Appro
   scale_colour_colorblind() 
 age_p
 
-# bar plots----
+# 4. bar plots----
 # change approved to no and yes
 
 Data$Approved =  fct_recode(Data$Approved, 'No' = '-', 'Yes' = '+')
@@ -197,7 +201,6 @@ marital_p = ggplot(data=filter(Data, MaritalStatus %in% c('u', 'y')), aes(x=Mari
   theme(plot.title = element_text(face='bold', hjust = 0.5, vjust = 0.5)) +
   scale_fill_colorblind() 
 marital_p
-
 # interestingly married people are less likely to be approved
 
 # BankingInstitution 
@@ -226,26 +229,17 @@ default_p = ggplot(data=Data, aes(x=NoPriorDefault, fill=Approved)) +
 default_p
 # very powerful explanatory variable
 
-# free plots (EDA) ----
-# do a plot monthly expenses by age - I'm curious about all the $0 monthly expenses
-# can use my marginal density plots here
-library(ggExtra)
-age_exp_p = ggplot(data = Data, mapping = aes(x=Age, y=MonthlyExpenses, colour=Approved)) +
-  geom_point(alpha=0.4) +
-  scale_color_colorblind() +
-  theme_minimal() 
+# 5. free plots (EDA) ----
+describe(Data) # Hmisc
+des = describe(Data)
+plot(des)
 
-age_exp_p = ggMarginal(age_exp_p, type = 'density',
-    margins = 'both',
-    size = 5, groupColour = TRUE,
-    groupFill = TRUE)
-age_exp_p
-
-# plot age by mthly expenses - i'm interested in ppl with $0 mthly expenses - are they younger?
+# plot each variable
 num_cols = c("Age", "MonthlyExpenses", "YearsEmployed", "CreditScore", "MonthlyIncome", "AccountBalance")
 cat_cols = c("Gender", "MaritalStatus", "HomeStatus", "Occupation", "BankingInstitution", "NoPriorDefault", 
              "Employed", "DriversLicense", "AccountType", "Approved")
 
+# numeric variables
 # Age
 age_p = ggplot(data = Data, aes(x=Approved,  y=Age, group=Approved, colour=Approved)) + 
   geom_boxplot() + 
@@ -322,6 +316,7 @@ mth_inc_p = ggplot(data = Data, aes(x=Approved,  y=MonthlyIncome + 1, group=Appr
   scale_colour_colorblind() 
 mth_inc_p
 # a bunch of people with 0 mthly income approved.. why?? seems wrong
+# did they have more savings? are retired? are they a certain occupation????
 zero_income_approved = filter(Data, Approved=='+', MonthlyIncome==0)
 
 # acct balance
@@ -474,41 +469,29 @@ app_p = ggplot(data=Data, aes(x=Approved)) +
 app_p
 # more no than yes
 
+# 6. hypothesis: females less likely to be approved----
+summary(Data$Gender)
 
+gender_p = ggplot(data=Data, aes(x=Gender, fill=Approved, group=Approved)) + 
+  geom_bar(position="dodge") +
+  ggtitle('Gender and Credit Card Application Outcome') +
+  xlab('Gender') + 
+  ylab('Count') +
+  scale_x_discrete(labels=c("f" = "No", "t" = "Yes")) +
+  theme_minimal() +
+  theme(plot.title = element_text(face='bold', hjust = 0.5, vjust = 0.5)) +
+  scale_fill_colorblind() 
+gender_p
 
-
-# ideas
-# interesting some occs more and less likely - interesting to plot against mthly income grouped by gender
-
-# boxplots of income vs occupation stratified by gender
-inc_occ_sex_p = ggplot(data = Data, mapping = aes(y=MonthlyIncome, colour=Approved)) +
-  geom_boxplot() +
-  facet_wrap(vars(Occupation))
-inc_occ_sex_p
-# boxplotes of savings vs occupation stratified by gender
-
-# may find that higher paid more likely to be approved are men???
-
-
-# income by acct balance (approved)
-
-# occupation, income, acct balance by approved
-
-
-
-# a bunch of people with 0 mthly income approved.. why?? seems wrong
-zero_income_approved = filter(Data, Approved=='+', MonthlyIncome==0)
-
-library(Hmisc)
-describe(Data)
-des = describe(Data)
-plot(des)
+Data %>% 
+  group_by(Gender, Approved) %>% 
+  summarise(approved=n())
 
 # credit score by gender # not particularly enlightening
-credit_score_gender_p = ggplot(data = Data, aes(x=Gender,  y=CreditScore + 1, group=Gender, colour=Gender)) + 
+credit_score_p = ggplot(data = Data, aes(x=Approved,  y=CreditScore + 1, group=Approved, colour=Approved)) + 
   geom_boxplot() + 
   geom_point(position=position_jitterdodge(), alpha=0.1) +
-  ggtitle('Credit Score and Credit Card Application Outcome') +
+  ggtitle('Credit Score') +
   ylab('Credit Score + 1') + 
   xlab('Credit Card Application Approved') + 
   scale_x_discrete(labels=c("-" = "No", "+" = "Yes")) +
@@ -516,28 +499,42 @@ credit_score_gender_p = ggplot(data = Data, aes(x=Gender,  y=CreditScore + 1, gr
   theme_minimal() +
   theme(legend.position="none") +
   theme(plot.title = element_text(face='bold', hjust = 0.5, vjust = 0.5)) +
-  scale_colour_colorblind() 
-credit_score_gender_p
+  scale_colour_colorblind() +
+  facet_wrap(vars(Gender))
+credit_score_p
 # 'b' has lower credit score
 
+Data %>% 
+  group_by(Gender, Approved) %>% 
+  summarise(mean=mean(CreditScore))
+
+
 # marital status by gender
-marital_sex_p = ggplot(data=filter(Data, MaritalStatus %in% c('u', 'y')), aes(x=MaritalStatus, fill=Approved)) + 
+marital_sex_p = ggplot(data=dplyr::filter(Data, MaritalStatus %in% c('u', 'y')), aes(x=MaritalStatus, group=Approved, fill=Approved)) + 
   geom_bar(position="dodge") +
-  ggtitle('Marital Status and Credit Card Application Outcome') +
+  ggtitle('Marital Status') +
   xlab('Marital Status') + 
   ylab('Count') +
   scale_x_discrete(labels=c("l" = "Other", "u" = "Unmarried", 'y'='Married')) +
   theme_minimal() +
   theme(plot.title = element_text(face='bold', hjust = 0.5, vjust = 0.5)) +
   scale_fill_colorblind() +
-  facet_wrap(vars(Gender))
+  facet_grid(~Gender)
 marital_sex_p
 # interesting - for sex 'b' married are much less likely to be approved
 
+Data %>% 
+  group_by(MaritalStatus, Approved) %>% 
+  summarise(approved=n())
+
+Data %>% 
+  group_by(Gender, MaritalStatus) %>% 
+  summarise(count=n())
+
 # employed by gender
-employed_sex_p = ggplot(data=Data, aes(x=Employed, fill=Approved)) + 
+employed_sex_p = ggplot(data=Data, aes(x=Employed, group=Approved, fill=Approved)) + 
   geom_bar(position="dodge") +
-  ggtitle('Employment Status and Credit Card Application Outcome') +
+  ggtitle('Employment Status') +
   xlab('Employed') + 
   ylab('Count') +
   scale_x_discrete(labels=c("f" = "No", "t" = "Yes")) +
@@ -547,10 +544,18 @@ employed_sex_p = ggplot(data=Data, aes(x=Employed, fill=Approved)) +
   facet_wrap(vars(Gender))
 employed_sex_p
 
+Data %>% 
+  group_by(Employed, Approved) %>% 
+  summarise(n=n())
+
+Data %>% 
+  group_by(Gender, Employed) %>% 
+  summarise(n=n())
+
 # DriversLicense gender
-licence_sex_p = ggplot(data=Data, aes(x=DriversLicense, fill=Approved)) + 
+licence_sex_p = ggplot(data=Data, aes(x=DriversLicense, group=Approved, fill=Approved)) + 
   geom_bar(position="dodge") +
-  ggtitle('Drivers License and Credit Card Application Outcome') +
+  ggtitle('Drivers Licence') +
   xlab('Drivers License') + 
   ylab('Count') +
   scale_x_discrete(labels=c("f" = "No", "t" = "Yes")) +
@@ -561,35 +566,13 @@ licence_sex_p = ggplot(data=Data, aes(x=DriversLicense, fill=Approved)) +
 licence_sex_p
 # for 'b' a higher proportion without drivers licence were not approved
 
-occ_sex_p = ggplot(data=Data, aes(x=Occupation, fill=Gender)) + 
-  geom_bar(position="dodge") +
-  ggtitle('Occupation and Credit Card Application Outcome') +
-  xlab('Occupation') + 
-  ylab('Count') +
-  scale_x_discrete(labels=c("l" = "Other", "u" = "Unmarried", 'y'='Married')) +
-  theme_minimal() +
-  theme(plot.title = element_text(face='bold', hjust = 0.5, vjust = 0.5)) +
-  scale_fill_colorblind() 
-occ_sex_p
-# b are much more likely to be 'c'
+Data %>% 
+  group_by(Gender, DriversLicense, Approved) %>% 
+  summarise(n=n())
 
-occ_sex_app_p = ggplot(data=Data, aes(x=Occupation, fill=Approved)) + 
-  geom_bar(position="dodge") +
-  ggtitle('Occupation and Credit Card Application Outcome') +
-  xlab('Occupation') + 
-  ylab('Count') +
-  scale_x_discrete(labels=c("l" = "Other", "u" = "Unmarried", 'y'='Married')) +
-  theme_minimal() +
-  theme(plot.title = element_text(face='bold', hjust = 0.5, vjust = 0.5)) +
-  scale_fill_colorblind() +
-  facet_wrap(vars(Gender))
-occ_sex_app_p
-
-
-
-
-
-
+# multiplot
+multi_p = plot_grid(credit_score_p, marital_sex_p, employed_sex_p, licence_sex_p, labels = c('A', 'B', 'C', 'D'))
+ggsave("multiplot.png", multi_p, width = 10, height = 10)
 
 
 

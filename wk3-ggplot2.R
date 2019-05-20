@@ -84,13 +84,21 @@ ggplot(data = diamonds, mapping = aes(x = clarity, y = carat)) + geom_boxplot()
 ggplot(data = diamonds, mapping = aes(x = cut, y = carat)) + geom_boxplot()
 
 
-# topic 1 discussion
+# topic 1 discussion - mpg data
 MyGraph + facet_wrap(c("trans"), ncol = 1)
 MyGraph + facet_grid(trans ~ .)
 
 plot = ggplot(data = mpg, aes(x=hwy, y=cty)) + geom_point()
 plot + facet_wrap(c('class'))
 plot + facet_grid(class ~ .)
+
+# topic 3 exercise - diamonds data
+ggplot(data = diamonds, aes(x=clarity, y=carat)) + geom_boxplot()
+ggplot(data = diamonds, mapping = aes(x = cut, y = carat)) + geom_boxplot()
+
+ggplot(data = diamonds, mapping = aes(x = clarity, y = carat)) + 
+  geom_boxplot(outlier.color = "red", outlier.shape = 3) + 
+  geom_jitter(width = 0.1, alpha = 0.05, color = "blue")
 
 
 
