@@ -71,6 +71,12 @@ Data_numeric = Data[, numeric_cols]
 pearson_cor = cor(Data_numeric, method = 'pearson')
 spearman_cor = cor(Data_numeric, method = 'spearman')
 
+# SMC
+ct = table(Data$NoPriorDefault, Data$Approved)
+ssc = (ct[1,1]+ct[2,2])/sum(ct)
+jc = ct[2,2]/sum(ct)
+
+
 # boxplots----
 summary(Data$AccountBalance)
 # This variable is left skewed so I will log transform (+ 1)
@@ -220,31 +226,6 @@ default_p = ggplot(data=Data, aes(x=NoPriorDefault, fill=Approved)) +
 default_p
 # very powerful explanatory variable
 
-# SMC
-Data = read.table('http://archive.ics.uci.edu/ml/machine-learning-databases/credit-screening/crx.data', header = F, sep = ',', na.strings = '?')
-names(Data) <- c("Gender", "Age", "MonthlyExpenses", "MaritalStatus", "HomeStatus", "Occupation", "BankingInstitution", "YearsEmployed", 
-                 "NoPriorDefault", "Employed", "CreditScore", "DriversLicense", "AccountType", "MonthlyIncome", "AccountBalance", "Approved")
-Data$Gender <- as.factor(Data$Gender) # symmetric binary
-Data$Age <- as.numeric(Data$Age) # numeric float
-Data$MonthlyExpenses <- as.integer(Data$MonthlyExpenses) # numeric int
-Data$MaritalStatus <- as.factor(Data$MaritalStatus)  # nominal
-Data$HomeStatus <- as.factor(Data$HomeStatus) # nominal
-Data$Occupation <- as.factor(Data$Occupation) # nominal
-Data$BankingInstitution <- as.factor(Data$BankingInstitution) # nominal
-Data$YearsEmployed <- as.numeric(Data$YearsEmployed) # numeric float
-Data$NoPriorDefault <- as.factor(Data$NoPriorDefault) # symmetric binary 
-Data$Employed <- as.factor(Data$Employed) # symmetric binary  
-Data$CreditScore <- as.numeric(Data$CreditScore) # numeric float
-Data$DriversLicense <- as.factor(Data$DriversLicense) # symmetric binary 
-Data$AccountType <- as.factor(Data$AccountType) # nominal
-Data$MonthlyIncome <- as.integer(Data$MonthlyIncome) # numeric int
-Data$AccountBalance <- as.numeric(Data$AccountBalance) # numeric float
-Data$Approved <- as.factor(Data$Approved) # symmetric binary
-
-ct = table(Data$NoPriorDefault, Data$Approved)
-ssc = (ct[1,1]+ct[2,2])/sum(ct)
-jc = ct[2,2]/sum(ct)
-
 # free plots (EDA) ----
 # do a plot monthly expenses by age - I'm curious about all the $0 monthly expenses
 # can use my marginal density plots here
@@ -361,9 +342,6 @@ acc_bal_p
 # makes sense - many people applying for credit card need money
 
 # Categorical variables - bar plots
-cat_cols = c("Gender", "MaritalStatus", "HomeStatus", "Occupation", "BankingInstitution", "NoPriorDefault", 
-             "Employed", "DriversLicense", "AccountType", "Approved")
-
 # gender
 gender_p = ggplot(data=Data, aes(x=Gender, fill=Approved)) + 
   geom_bar(position="dodge") +
@@ -375,7 +353,7 @@ gender_p = ggplot(data=Data, aes(x=Gender, fill=Approved)) +
   theme(plot.title = element_text(face='bold', hjust = 0.5, vjust = 0.5)) +
   scale_fill_colorblind() 
 gender_p
-# 'b' less likely to be approved.. women?? 
+# 'b' bigger proportion and less likely to be approved.. women?? 
 
 # MaritalStatus  
 # u = unmarried; y = yes; l must be 'living together'
@@ -501,6 +479,14 @@ app_p
 
 # ideas
 # interesting some occs more and less likely - interesting to plot against mthly income grouped by gender
+
+# boxplots of income vs occupation stratified by gender
+inc_occ_sex_p = ggplot(data = Data, mapping = aes(y=MonthlyIncome, colour=Approved)) +
+  geom_boxplot() +
+  facet_wrap(vars(Occupation))
+inc_occ_sex_p
+# boxplotes of savings vs occupation stratified by gender
+
 # may find that higher paid more likely to be approved are men???
 
 
@@ -509,7 +495,99 @@ app_p
 # occupation, income, acct balance by approved
 
 
-# do boxplots by approved for all numeric
+
+# a bunch of people with 0 mthly income approved.. why?? seems wrong
+zero_income_approved = filter(Data, Approved=='+', MonthlyIncome==0)
+
+library(Hmisc)
+describe(Data)
+des = describe(Data)
+plot(des)
+
+# credit score by gender # not particularly enlightening
+credit_score_gender_p = ggplot(data = Data, aes(x=Gender,  y=CreditScore + 1, group=Gender, colour=Gender)) + 
+  geom_boxplot() + 
+  geom_point(position=position_jitterdodge(), alpha=0.1) +
+  ggtitle('Credit Score and Credit Card Application Outcome') +
+  ylab('Credit Score + 1') + 
+  xlab('Credit Card Application Approved') + 
+  scale_x_discrete(labels=c("-" = "No", "+" = "Yes")) +
+  scale_y_continuous(trans = 'log2', labels = scales::comma) +
+  theme_minimal() +
+  theme(legend.position="none") +
+  theme(plot.title = element_text(face='bold', hjust = 0.5, vjust = 0.5)) +
+  scale_colour_colorblind() 
+credit_score_gender_p
+# 'b' has lower credit score
+
+# marital status by gender
+marital_sex_p = ggplot(data=filter(Data, MaritalStatus %in% c('u', 'y')), aes(x=MaritalStatus, fill=Approved)) + 
+  geom_bar(position="dodge") +
+  ggtitle('Marital Status and Credit Card Application Outcome') +
+  xlab('Marital Status') + 
+  ylab('Count') +
+  scale_x_discrete(labels=c("l" = "Other", "u" = "Unmarried", 'y'='Married')) +
+  theme_minimal() +
+  theme(plot.title = element_text(face='bold', hjust = 0.5, vjust = 0.5)) +
+  scale_fill_colorblind() +
+  facet_wrap(vars(Gender))
+marital_sex_p
+# interesting - for sex 'b' married are much less likely to be approved
+
+# employed by gender
+employed_sex_p = ggplot(data=Data, aes(x=Employed, fill=Approved)) + 
+  geom_bar(position="dodge") +
+  ggtitle('Employment Status and Credit Card Application Outcome') +
+  xlab('Employed') + 
+  ylab('Count') +
+  scale_x_discrete(labels=c("f" = "No", "t" = "Yes")) +
+  theme_minimal() +
+  theme(plot.title = element_text(face='bold', hjust = 0.5, vjust = 0.5)) +
+  scale_fill_colorblind() +
+  facet_wrap(vars(Gender))
+employed_sex_p
+
+# DriversLicense gender
+licence_sex_p = ggplot(data=Data, aes(x=DriversLicense, fill=Approved)) + 
+  geom_bar(position="dodge") +
+  ggtitle('Drivers License and Credit Card Application Outcome') +
+  xlab('Drivers License') + 
+  ylab('Count') +
+  scale_x_discrete(labels=c("f" = "No", "t" = "Yes")) +
+  theme_minimal() +
+  theme(plot.title = element_text(face='bold', hjust = 0.5, vjust = 0.5)) +
+  scale_fill_colorblind() +
+  facet_wrap(vars(Gender))
+licence_sex_p
+# for 'b' a higher proportion without drivers licence were not approved
+
+occ_sex_p = ggplot(data=Data, aes(x=Occupation, fill=Gender)) + 
+  geom_bar(position="dodge") +
+  ggtitle('Occupation and Credit Card Application Outcome') +
+  xlab('Occupation') + 
+  ylab('Count') +
+  scale_x_discrete(labels=c("l" = "Other", "u" = "Unmarried", 'y'='Married')) +
+  theme_minimal() +
+  theme(plot.title = element_text(face='bold', hjust = 0.5, vjust = 0.5)) +
+  scale_fill_colorblind() 
+occ_sex_p
+# b are much more likely to be 'c'
+
+occ_sex_app_p = ggplot(data=Data, aes(x=Occupation, fill=Approved)) + 
+  geom_bar(position="dodge") +
+  ggtitle('Occupation and Credit Card Application Outcome') +
+  xlab('Occupation') + 
+  ylab('Count') +
+  scale_x_discrete(labels=c("l" = "Other", "u" = "Unmarried", 'y'='Married')) +
+  theme_minimal() +
+  theme(plot.title = element_text(face='bold', hjust = 0.5, vjust = 0.5)) +
+  scale_fill_colorblind() +
+  facet_wrap(vars(Gender))
+occ_sex_app_p
+
+
+
+
 
 
 
