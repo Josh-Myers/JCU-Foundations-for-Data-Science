@@ -248,7 +248,7 @@ cat_cols = c("Gender", "MaritalStatus", "HomeStatus", "Occupation", "BankingInst
 mth_inc_p = ggplot(data = Data, aes(x=Approved,  y=MonthlyIncome + 1, group=Approved, colour=Approved)) + 
   geom_boxplot() + 
   geom_point(position=position_jitterdodge(), alpha=0.1) +
-  ggtitle('Monthly Income') +
+  ggtitle('Monthly Income All') +
   ylab('Monthly Income + 1 ($)') + 
   xlab('Credit Card Application Approved') + 
   scale_x_discrete(labels=c("-" = "No", "+" = "Yes")) +
@@ -291,10 +291,8 @@ inc_not_0_p = Data %>%
 inc_not_0_p = ggMarginal(inc_not_0_p, type = 'density', margins = 'y', size = 5, groupColour = T, groupFill = T)
 inc_not_0_p
 
-mth_inc_mult_p = plot_grid(mth_inc_p, inc_not_0_p, labels = c('A', 'B'))
+mth_inc_mult_p = plot_grid(mth_inc_p, inc_not_0_p, labels = c('Fig. A', 'Fig. B'))
 ggsave("mth_inc_mult.png", mth_inc_mult_p, width = 10, height = 5)
-
-
 
 # make a cat variable 0 monthly income or >0 monthly income
 Data = Data %>%
@@ -380,7 +378,7 @@ occ_inc0_p = Data %>%
   ggplot(aes(x=Occupation, colour=Approved, fill=Approved)) +
   geom_bar() +
   xlab('Occupation') +
-  ggtitle('Occupation 0$ Monthly Income') +
+  ggtitle('Monthly Income = $0 Occupation') +
   facet_grid(vars(Approved)) +
   scale_color_colorblind() +
   scale_x_discrete(labels=c(LETTERS[1:14])) +
@@ -389,7 +387,6 @@ occ_inc0_p = Data %>%
   theme(plot.title = element_text(face='bold', hjust = 0.5, vjust = 0.5)) 
 occ_inc0_p  
 # More occupation c and q for people with $0 income who were approved
-
 
 # home status
 # filter out 'gg' there is only 2 of those
@@ -442,11 +439,18 @@ marital_inc_p = ggplot(data=filter(Data, MaritalStatus %in% c('u', 'y')), aes(x=
 marital_inc_p
 # higher prop unmarried
 
-cont = plot_grid(age_inc_p, cred_mthInc_p, acc_bal_inc_p, labels = c('A', 'B', 'C'), nrow = 1)
-bar = plot_grid(default_inc_p, home_inc_p, marital_inc_p, occ_inc0_p, labels = c('A', 'B'), nrow = 2)
+# gender
+sex_inc_p = ggplot(Data, aes(x=Gender, group=Approved, colour=Approved, fill=Approved)) +
+  geom_bar(position='fill') +
+  facet_wrap(vars(zeroMthlyInc))
+sex_inc_p
+
+
+cont = plot_grid(age_inc_p, acc_bal_inc_p, cred_mthInc_p, labels = c('Fig. C', 'Fig. D', 'Fig. E'), nrow = 1)
+bar = plot_grid(default_inc_p, home_inc_p, marital_inc_p, occ_inc0_p, labels = c('Fig. F', 'Fig. G', 'Fig. H', 'Fig. I'), nrow = 1)
 
 ggsave("box_multi.png", cont, width = 15, height = 5)
-ggsave("bar_multi.png", bar, width = 10, height = 10)
+ggsave("bar_multi.png", bar, width = 20, height = 5)
 
 
 
