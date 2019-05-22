@@ -69,6 +69,12 @@ Dist_rand <- daisy(Data_rand, metric = 'gower')
 Dist_rand <- as.matrix(Dist_rand)
 image(1:dim, 1:dim, Dist_rand, axes = FALSE, xlab="", ylab="", col = rainbow(100)) # evenly distributed now
 
+# sort by credit outcome
+Data_sort = Data[order(Data$Approved),]
+Dist_sort = daisy(Data_sort, metric = 'gower')
+Dist_sort = as.matrix(Dist_sort)
+image(1:dim, 1:dim, Dist_sort, axes = FALSE, xlab="", ylab="", col = rainbow(100)) # evenly distributed now
+
 # it's a heatmap and some are closer than others
 # this colour are closer together, others are further apart
 
@@ -502,7 +508,6 @@ credit_score_p = ggplot(data = Data, aes(x=Approved,  y=CreditScore + 1, group=A
   scale_colour_colorblind() +
   facet_wrap(vars(Gender))
 credit_score_p
-# 'b' has lower credit score
 
 Data %>% 
   group_by(Gender, Approved) %>% 
@@ -573,6 +578,166 @@ Data %>%
 # multiplot
 multi_p = plot_grid(credit_score_p, marital_sex_p, employed_sex_p, licence_sex_p, labels = c('A', 'B', 'C', 'D'))
 ggsave("multiplot.png", multi_p, width = 10, height = 10)
+
+
+## 7. take 2
+mth_inc_p = ggplot(data = Data, aes(x=Approved,  y=MonthlyIncome + 1, group=Approved, colour=Approved)) + 
+  geom_boxplot() + 
+  geom_point(position=position_jitterdodge(), alpha=0.1) +
+  ggtitle('Monthly Income and Credit Card Application Outcome') +
+  ylab('Monthly Income + 1 ($)') + 
+  xlab('Credit Card Application Approved') + 
+  scale_x_discrete(labels=c("-" = "No", "+" = "Yes")) +
+  scale_y_log10(labels = scales::comma) +
+  theme_minimal() +
+  theme(legend.position="none") +
+  theme(plot.title = element_text(face='bold', hjust = 0.5, vjust = 0.5)) +
+  scale_colour_colorblind() 
+
+mth_inc_p = ggMarginal(mth_inc_p, type = 'density', margins = 'y', size = 5, groupColour = T, groupFill = T)
+mth_inc_p
+# this is interesting people with higher income are slighly less likely to be approved..
+# its the cluster of people with 0 mthly income who were approved who are dragging the distribution down - look into those
+
+Data %>% group_by(Approved) %>% 
+  filter(MonthlyIncome==0) %>% 
+  summarise(count=n())
+
+summary(Data$Approved)
+# there are 80/296 (0.27 proportion) people with 0 mthly income who were approved, compared with 48/357 (0.13 prop) not approved
+# in the dataset there are more not approved than approved - so this definitely bucks the trend
+# are they older?? retired?? have more savings?? are they a certain occupation??
+
+# summarise income with 0 removed, are approved and not approved similar now??
+
+# make a cat variable 0 monthly income or >0 monthly income
+Data = Data %>%
+  mutate(zeroMthlyInc = ifelse(MonthlyIncome==0, 0, 1))
+  
+Data$zeroMthlyInc = factor(Data$zeroMthlyInc, levels = c(0, 1), labels = c('0', '>0'))
+summary(Data$zeroMthlyInc)
+
+cred_mthInc_p = ggplot(data = Data, aes(x=zeroMthlyInc,  y=CreditScore+1, colour=zeroMthlyInc)) + 
+  geom_boxplot(alpha=0.5) +
+  geom_point(position=position_jitterdodge(), alpha=0.1) +
+  #ggtitle('Monthly Income and Credit Card Application Outcome') +
+  #ylab('Monthly Income + 1 ($)') + 
+  #xlab('Credit Card Application Approved') + 
+  #scale_x_discrete(labels=c("0", ">0")) +
+  scale_y_continuous(trans='log2', labels = scales::comma) +
+  theme_minimal() +
+  theme(legend.position="none") +
+  theme(plot.title = element_text(face='bold', hjust = 0.5, vjust = 0.5)) +
+  scale_colour_colorblind() 
+
+cred_mthInc_p = ggMarginal(cred_mthInc_p, type = 'density', margins = 'y', size = 5, groupColour = T, groupFill = T)
+cred_mthInc_p
+# zero mthly income more likely to have higher credit rating
+
+# are they older - perhaps retired??
+# Age
+age_inc_p = ggplot(data = Data, aes(x=Approved,  y=Age, group=Approved, colour=Approved)) + 
+  geom_boxplot() + 
+  geom_point(position=position_jitterdodge(), alpha=0.1) +
+  ggtitle('Age and Credit Card Application Outcome') +
+  ylab('Age') + 
+  xlab('Credit Card Application Approved') + 
+  scale_x_discrete(labels=c("-" = "No", "+" = "Yes")) +
+  scale_y_sqrt(labels = scales::comma) +
+  theme_minimal() +
+  theme(legend.position="none") +
+  theme(plot.title = element_text(face='bold', hjust = 0.5, vjust = 0.5)) +
+  scale_colour_colorblind() +
+  facet_wrap(vars(zeroMthlyInc))
+age_inc_p
+# older on average
+
+
+# NoPriorDefault
+default_inc_p = ggplot(data=Data, aes(x=NoPriorDefault, fill=zeroMthlyInc, colour=zeroMthlyInc)) + 
+  geom_bar(position='fill') +
+  ggtitle('Prior Default and Credit Card Application Outcome') +
+  xlab('Prior Default') + 
+  #ylab('Count') +
+  scale_x_discrete(labels=c("f" = "Yes", "t" = "No")) + # this seems weird but the variable is "no prior default" I am presenting as "prior default" y/n
+  theme_minimal() +
+  theme(plot.title = element_text(face='bold', hjust = 0.5, vjust = 0.5)) +
+  scale_fill_colorblind() +
+  scale_color_colorblind()
+default_inc_p
+# greater proportion of no prior default with 0 mthly income
+
+# Occupation
+occ_inc_p = ggplot(data=Data, aes(x=Occupation, fill=zeroMthlyInc, colour=zeroMthlyInc)) + 
+  geom_bar(position='fill') +
+  #ggtitle('Prior Default and Credit Card Application Outcome') +
+  xlab('Prior Default') + 
+  #ylab('Count') +
+  scale_x_discrete(labels=c("f" = "Yes", "t" = "No")) + # this seems weird but the variable is "no prior default" I am presenting as "prior default" y/n
+  theme_minimal() +
+  theme(plot.title = element_text(face='bold', hjust = 0.5, vjust = 0.5)) +
+  scale_fill_colorblind() +
+  scale_color_colorblind()
+occ_inc_p
+# greater proportion of 0 mthly income are e and r occupation - is e retired??
+
+# home status
+# filter out 'gg' there is only 2 of those
+home_inc_p = Data %>% 
+  filter(HomeStatus != 'gg') %>% 
+  ggplot(aes(x=HomeStatus, fill=zeroMthlyInc, colour=zeroMthlyInc)) + 
+  geom_bar(position="fill") +
+  ggtitle('Home Status and Credit Card Application Outcome') +
+  xlab('Home Status') + 
+  ylab('Count') +
+  scale_x_discrete(labels=c("l" = "Other", "u" = "Unmarried", 'y'='Married')) +
+  theme_minimal() +
+  theme(plot.title = element_text(face='bold', hjust = 0.5, vjust = 0.5)) +
+  scale_fill_colorblind() +
+  scale_color_colorblind() +
+  facet_wrap(vars(Approved))
+home_inc_p
+# 0 who were approved more likely to be 'g' home status - g is own your home??
+
+
+acc_bal_inc_p = ggplot(data = Data, aes(x=Approved, y=AccountBalance+1, colour=Approved)) + 
+  geom_boxplot() + 
+  geom_point(position=position_jitterdodge(), alpha=0.1) +
+  #ggtitle('Account Balance and Credit Card Application Outcome') +
+  #ylab('Bank Account Balance + 1 ($)') + 
+  #xlab('Credit Card Application Approved') + 
+  #scale_x_discrete(labels=c("-" = "No", "+" = "Yes")) +
+  scale_y_log10(labels = scales::comma) +
+  theme_minimal() +
+  theme(legend.position="none") +
+  theme(plot.title = element_text(face='bold', hjust = 0.5, vjust = 0.5)) +
+  scale_colour_colorblind() +
+  facet_wrap(vars(zeroMthlyInc))
+acc_bal_inc_p
+
+# MaritalStatus  
+# u = unmarried; y = yes; l must be 'living together'
+# only 2 living together - both approved
+# consider removing - just put a note
+filter(Data, MaritalStatus=='l')
+marital_inc_p = ggplot(data=filter(Data, MaritalStatus %in% c('u', 'y')), aes(x=MaritalStatus, fill=Approved)) + 
+  geom_bar(position="fill") +
+  ggtitle('Marital Status and Credit Card Application Outcome') +
+  xlab('Marital Status') + 
+  ylab('Count') +
+  scale_x_discrete(labels=c("l" = "Other", "u" = "Unmarried", 'y'='Married')) +
+  theme_minimal() +
+  theme(plot.title = element_text(face='bold', hjust = 0.5, vjust = 0.5)) +
+  scale_fill_colorblind() +
+  facet_wrap(vars(zeroMthlyInc))
+marital_inc_p
+# higher prop unmarried
+
+
+
+# also there are a bunch of people with 0 mthly income approved.. why?? seems wrong
+# did they have more savings? are retired? are they a certain occupation????
+zero_income_approved = filter(Data, Approved=='+', MonthlyIncome==0)
 
 
 
