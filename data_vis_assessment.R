@@ -451,6 +451,3 @@ bar = plot_grid(default_inc_p, home_inc_p, marital_inc_p, occ_inc0_p, labels = c
 
 ggsave("box_multi.png", cont, width = 15, height = 5)
 ggsave("bar_multi.png", bar, width = 20, height = 5)
-
-
-
