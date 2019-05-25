@@ -76,19 +76,32 @@ articulated_prop = articulated/total
 prop_pop = rbind(mc_prop, bus_prop, heavy_rigid_prop, articulated_prop)
 
 # year, month, day by state plots
-year_p = ggplot(road_data, aes(x=Year, colour=State)) + 
-  geom_line(stat="count") +
+year_p = road_data %>% 
+  mutate_at(vars(Year, State), factor) %>%
+  group_by(Year, State) %>% 
+  summarize(n=n()) %>%
+  ggplot(aes(x=Year, y=n, group=State, colour=State, fill=State)) + 
+  geom_line(alpha=0.5) +
+  geom_smooth(alpha=0.2) +
   ylab('Number of Deaths') +
   scale_y_continuous(trans = 'log10') +
-  scale_colour_colorblind() 
+  scale_colour_colorblind() +
+  scale_fill_colorblind() 
 year_p
 
-month_p = ggplot(road_data, aes(x=Month, colour=State)) +
-  geom_line(stat = 'count') +
+month_p = road_data %>% 
+  mutate_at(vars(Month, State), factor) %>% 
+  group_by(Month, State) %>% 
+  summarize(n=n()) %>% 
+  ggplot(aes(x=Month, y=n, group=State, colour=State, fill=State)) +
+  geom_line(alpha=0.5) +
+  geom_smooth(alpha=0.2) +
   ylab('Number of Deaths') +
-  scale_x_continuous(breaks = 1:12, labels = month.abb) +
-  scale_colour_colorblind() 
-month_p # no clear trend
+  scale_x_discrete(breaks = 1:12, labels = month.abb) +
+  scale_y_continuous(trans = 'log10') +
+  scale_colour_colorblind() +
+  scale_fill_colorblind() 
+month_p # slight trend up in december
 
 # do month faceted by 1/2 decades
 five_years = c('1989 to 1993', '1994 to 1998', '1999 to 2003', '2004 to 2008', '2009 to 2013', '2014 to 2018')
