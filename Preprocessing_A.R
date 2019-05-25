@@ -86,6 +86,71 @@ Lab_Ash = Lab_Ash_Calculated %>%
   summarise(Ash=mean(Ash))
   
 # Pol and Brix data
+Lab_PB_Data = read.table('data/assessments/Sugar_Cane_NIRS/Sugar_Cane_Input_Files/Lab_Pol_Brix.csv', header=T, sep = ',')
+
+Lab_PB_Data = Lab_PB_Data %>% 
+  mutate(PredBrix = ExpectedBrix(Pol))
+
+library(ggthemes)
+PB_p = Lab_PB_Data %>% 
+  mutate(Abs_Brix = abs(Brix - PredBrix), Abs_Brix_1 = factor(ifelse(Abs_Brix > 1, '> 1', '\u2264 1'))) %>% 
+  ggplot(aes(x=Brix, y=Pol, colour=Abs_Brix_1)) +
+  geom_point(alpha=0.4) +
+  scale_color_colorblind() +
+  labs(colour="| Brix - PredBrix |") +
+  theme_minimal()
+PB_p
+
+Lab_PB  = Lab_PB_Data %>% 
+  mutate(Abs_Brix = abs(Brix - PredBrix)) %>% 
+  filter(Abs_Brix <= 1, Brix > Thresh.Brix.min, Brix < Thresh.Brix.max, Pol > Thresh.Pol.min, Pol < Thresh.Pol.max) %>% 
+  select(LabID, Pol, Brix)
   
+# join cleaned dfs together
+Lab <- full_join(Lab_Ash, Lab_Fibre, by=c("LabID" = "LabID"))
+
+Lab = full_join(Lab, Lab_PB, by=c("LabID" = "LabID"))  
+Lab[1:11,]
+
+write.table(Lab, file = "Lab_Out.csv", append = FALSE, quote = TRUE, sep = ",",
+            eol = "\n", na = "NA", dec = ".", row.names = FALSE, col.names = TRUE, qmethod = c("escape", "double"), fileEncoding = "")
+
+# transform variables
+Lab_Fibre = transform(Lab_Fibre, Fibre = z_stand(Fibre))
+write.table(Lab_Fibre, file = "Lab_Fibre_Out.csv", append = FALSE, quote = TRUE, sep = ",",
+            eol = "\n", na = "NA", dec = ".", row.names = FALSE, col.names = TRUE, qmethod = c("escape", "double"), fileEncoding = "")
+
+Lab_Ash = Lab_Ash %>% 
+  transform(Ash = log10(Ash)) %>% 
+  transform(Ash = z_stand(Ash))
+write.table(Lab_Ash, file = "Lab_Ash_Out.csv", append = FALSE, quote = TRUE, sep = ",",
+            eol = "\n", na = "NA", dec = ".", row.names = FALSE, col.names = TRUE, qmethod = c("escape", "double"), fileEncoding = "")
+
+Lab_PB$Bbin <- cut(Lab_PB$Brix, 40, labels = FALSE)
+Lab_PB$Bbin <- as.factor(Lab_PB$Bbin)
+
+Lab_B_Stratified_Balanced = Lab_PB %>% 
+  group_by(Bbin) %>% 
+  sample_n(size = 50, replace = TRUE) 
+
+Lab_B_Stratified_Balanced = Lab_B_Stratified_Balanced %>% 
+  transform(Brix = rescale_01(Brix)) %>% 
+  select(LabID, Brix)
+write.table(Lab_B_Stratified_Balanced, file = "Lab_Brix_Out.csv", append = FALSE, quote = TRUE, sep = ",",
+            eol = "\n", na = "NA", dec = ".", row.names = FALSE, col.names = TRUE, qmethod = c("escape", "double"), fileEncoding = "")
+
+
+Lab_P_Stratified_Balanced = Lab_PB %>% 
+  mutate(Pbin = as.factor(cut(Pol, 40, labels = FALSE))) %>% 
+  group_by(Pbin) %>% 
+  sample_n(size = 50, replace = TRUE) %>% 
+  transform(Pol = rescale_01(Pol)) %>% 
+  select(LabID, Pol)
+write.table(Lab_P_Stratified_Balanced, file = "Lab_Pol_Out.csv", append = FALSE, quote = TRUE, sep = ",",
+            eol = "\n", na = "NA", dec = ".", row.names = FALSE, col.names = TRUE, qmethod = c("escape", "double"), fileEncoding = "")
+
+  
+
+
 
 
