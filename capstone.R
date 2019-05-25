@@ -79,6 +79,7 @@ prop_pop = rbind(mc_prop, bus_prop, heavy_rigid_prop, articulated_prop)
 year_p = ggplot(road_data, aes(x=Year, colour=State)) + 
   geom_line(stat="count") +
   ylab('Number of Deaths') +
+  scale_y_continuous(trans = 'log10') +
   scale_colour_colorblind() 
 year_p
 
