@@ -79,46 +79,50 @@ prop_pop = rbind(mc_prop, bus_prop, heavy_rigid_prop, articulated_prop)
 year_p = road_data %>% 
   mutate_at(vars(Year, State), factor) %>%
   group_by(Year, State) %>% 
-  summarize(n=n()) %>%
+  summarise(n=n()) %>%
   ggplot(aes(x=Year, y=n, group=State, colour=State, fill=State)) + 
   geom_line(alpha=0.5) +
   geom_smooth(alpha=0.2) +
   ylab('Number of Deaths') +
   scale_y_continuous(trans = 'log10') +
+  scale_x_discrete(breaks = c(1990, 1995, 2000, 2005, 2010, 2015), labels = c('1990', '1995', '2000', '2005', '2010', '2015')) +
   scale_colour_colorblind() +
   scale_fill_colorblind() 
 year_p
 
-month_p = road_data %>% 
-  mutate_at(vars(Month, State), factor) %>% 
-  group_by(Month, State) %>% 
-  summarize(n=n()) %>% 
-  ggplot(aes(x=Month, y=n, group=State, colour=State, fill=State)) +
-  geom_line(alpha=0.5) +
-  geom_smooth(alpha=0.2) +
-  ylab('Number of Deaths') +
-  scale_x_discrete(breaks = 1:12, labels = month.abb) +
-  scale_y_continuous(trans = 'log10') +
-  scale_colour_colorblind() +
-  scale_fill_colorblind() 
-month_p # slight trend up in december
+# month_p = road_data %>% 
+#   mutate_at(vars(Month, State), factor) %>% 
+#   group_by(Month, State) %>% 
+#   summarise(n=n()) %>% 
+#   ggplot(aes(x=Month, y=n, group=State, colour=State, fill=State)) +
+#   geom_line(alpha=0.5) +
+#   geom_smooth(alpha=0.2) +
+#   ylab('Number of Deaths') +
+#   scale_x_discrete(breaks = 1:12, labels = month.abb) +
+#   scale_y_continuous(trans = 'log10') +
+#   scale_colour_colorblind() +
+#   scale_fill_colorblind() 
+# month_p # slight trend up in december
+# instead of grouping by state, group by 1/2 decaed
 
 # do month faceted by 1/2 decades
 five_years = c('1989 to 1993', '1994 to 1998', '1999 to 2003', '2004 to 2008', '2009 to 2013', '2014 to 2018')
-road_data_mth_dec = road_data %>% 
-  mutate(half_dec = cut(Year, breaks = c(-Inf, 1993, 1998, 2003, 2008, 2013, Inf),
+mth_p = road_data %>% 
+  mutate(five_yr_interval = cut(Year, breaks = c(-Inf, 1993, 1998, 2003, 2008, 2013, Inf),
                            labels=five_years)) %>% 
-  group_by(State, Month, half_dec) %>% 
+  group_by(Month, five_yr_interval) %>% 
   summarise(count=n()) %>% 
-  mutate(half_dec_ave = count/5)
-
-mth_half_dec_p = ggplot(road_data_mth_dec, aes(x=Month, y=half_dec_ave, colour=State)) +
-  geom_line() +
+  mutate(five_yr_ave = count/5) %>% 
+  ggplot(road_data, aes(x=Month, y=five_yr_ave, group=five_yr_interval, colour=five_yr_interval, fill=five_yr_interval)) +
+  geom_line(alpha=0.5) +
+  geom_smooth(alpha=0.2) +
   ylab('Number of Deaths') +
   scale_x_continuous(breaks = 1:12, labels = month.abb) +
+  #scale_y_log10() +
   scale_colour_colorblind() +
-  facet_wrap(vars(half_dec))
-mth_half_dec_p 
+  scale_fill_colorblind() 
+  #facet_wrap(vars(half_dec))
+mth_p 
 
 # animated mth
 # month_p_ani = ggplot(road_data, aes(x=Month, colour=State, frame=Year)) +
@@ -130,29 +134,33 @@ mth_half_dec_p
 #   transition_time(Year)
 # animate(month_p_ani, width = 450, height = 450) # any clear trends over time?
 
-day_p = ggplot(road_data, aes(x=Dayweek, group=State, colour=State)) +
-  geom_line(stat = 'count') +
+day_p = road_data %>% 
+  mutate(five_yr_interval = cut(Year, breaks = c(-Inf, 1993, 1998, 2003, 2008, 2013, Inf),
+                        labels=five_years)) %>% 
+  group_by(Dayweek, five_yr_interval) %>% 
+  summarise(count=n()) %>% 
+  mutate(five_yr_ave = count/5) %>% 
+  ggplot(aes(x=Dayweek, y=five_yr_ave,  group=five_yr_interval, colour=five_yr_interval)) +
+  geom_line() +
   ylab('Number of Deaths') +
+  xlab('Day of Week') +
   scale_x_discrete(labels = c('Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun')) +
   scale_colour_colorblind() 
 day_p
 
-# day by half decade
-# do month faceted by 1/2 decades
-road_data_day_dec = road_data %>% 
-  mutate(half_dec = cut(Year, breaks = c(-Inf, 1993, 1998, 2003, 2008, 2013, Inf),
+day_5_yr_p = road_data %>% 
+  mutate(five_yr_interval = cut(Year, breaks = c(-Inf, 1993, 1998, 2003, 2008, 2013, Inf),
                         labels=five_years)) %>% 
-  group_by(State, Dayweek, half_dec) %>% 
+  group_by(State, Dayweek, five_yr_interval) %>% 
   summarise(count=n()) %>% 
-  mutate(half_dec_ave = count/5)
-
-mth_half_dec_p = ggplot(road_data_day_dec, aes(x=Dayweek, y=half_dec_ave, group=State, colour=State)) +
+  mutate(five_yr_ave = count/5) %>% 
+  ggplot(aes(x=Dayweek, y=five_yr_ave, group=State, colour=State)) +
   geom_line() +
   ylab('Number of Deaths') +
-  #scale_x_continuous(breaks = 1, labels = month.abb) +
+  scale_y_log10() +
   scale_colour_colorblind() +
-  facet_wrap(vars(half_dec))
-mth_half_dec_p 
+  facet_wrap(vars(five_yr_interval))
+day_5_yr_p 
 
 # animated day across year
 # day_p_ani = ggplot(road_data, aes(x=Dayweek, group=State, colour=State, frame=Year)) +
@@ -172,10 +180,18 @@ summary(road_data$hour_int)
 road_data_hour = road_data %>% 
   drop_na(hour_int)
 
-hour_p = ggplot(road_data_hour, aes(x=hour_int, group=State, colour=State)) +
-  geom_line(stat = 'count') +
+hour_p = road_data_hour %>% 
+  mutate_at(vars(hour_int, State), factor) %>% 
+  group_by(hour_int, State) %>% 
+  summarise(n=n()) %>% 
+  ggplot(aes(x=hour_int, y=n, group=State, colour=State, fill=State)) +
+  geom_line(alpha=0.5) +
+  geom_smooth(alpha=0.2) +
   ylab('Number of Deaths') +
-  scale_color_colorblind()
+  
+  scale_y_log10() +
+  scale_color_colorblind() +
+  scale_fill_colorblind()
 hour_p # 2-6pm is most deaths, secondary peak ~ midnight
 
 hour_day_p = ggplot(road_data_hour, aes(x=hour_int, group=State, colour=State)) +
