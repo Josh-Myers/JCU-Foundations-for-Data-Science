@@ -5,6 +5,7 @@ library(ggthemes)
 library(lubridate)
 library(cowplot)
 library(Hmisc)
+library(mice)
 theme_set(theme_minimal())
 
 # Import road death data
@@ -15,15 +16,24 @@ road_data = filter(road_data, Year != 2019)
 # Don't need Crash ID
 road_data = road_data %>% select(-`Crash ID`)
 road_data$State = factor(road_data$State, levels=c('NSW', 'Vic', 'Qld', 'WA', 'SA', 'Tas', 'ACT', 'NT'))
+road_data$Month = as.integer(road_data$Month)
 road_data$Dayweek = factor(road_data$Dayweek, levels = c('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'))
-# remove other unneeded cols and impute NA
-describe(road_data)
+# extract hour of day from Time column
+time_of_day <- ymd_hms(road_data$Time)
+road_data$time_of_day <- hour(time_of_day) + minute(time_of_day)/60
+road_data$`Bus Involvement` = as.factor(road_data$`Bus Involvement`)
+road_data$`Heavy Rigid Truck Involvement` = as.factor(road_data$`Heavy Rigid Truck Involvement`)
+road_data$`Articulated Truck Involvement` = as.factor(road_data$`Articulated Truck Involvement`)
+road_data$Gender[road_data$Gender == 'Unspecified'] = NA
+road_data$Gender = as.factor(road_data$Gender)
+road_data$`Road User` = as.factor(road_data$`Road User`)
+#describe(road_data)
 # state 0 missing
 # month 0 missing
 # year 0 missing
 # day 0 missing
-# time 40 missing 
-# crash type 0 missing
+# time 40 missing - drop
+# crash type 0 missing - drop
 # bus involvement 0 missing
 # heavy rigid truck involvement many missing (20493) - but I only use 2018 data
 truck_2018 = road_data %>% 
@@ -40,14 +50,34 @@ truck_2018 # none missing for 2018
 # national road type - 45564 missing - drop
 # Xmas period 0 missing
 # Easter period 0 missing
-road_data$Gender[road_data$Gender == 'Unspecified'] = NA
 
-# deal with NA
-road_data = select(road_data, State)
+road_data = road_data %>% 
+  select(c(State:Dayweek, `Bus Involvement`:`Articulated Truck Involvement`, `Road User`:Age, time_of_day))
+road_data = rename(road_data, bus_involve=`Bus Involvement`, heavy_rigid_involve=`Heavy Rigid Truck Involvement`, 
+                          articulated_involve=`Articulated Truck Involvement`, road_user=`Road User`) # mice needs oneword variables
+init = mice(road_data, maxit=0) # need to impute road user (77), gender (22), age (84), time (40)
+meth = init$method
+predM = init$predictorMatrix
 
-# extract hour of day from Time column
-time_of_day <- ymd_hms(road_data$Time)
-road_data$time_of_day <- hour(time_of_day) + minute(time_of_day)/60
+# don't use bus involve, heavy rigid involve, or articulated involve pas predictor variables
+predM[, c('bus_involve')]=0
+predM[, c('heavy_rigid_involve')]=0
+predM[, c('articulated_involve')]=0
+
+# don't need to impute heavy rigid
+meth[c('heavy_rigid_involve')]=""
+
+# set methods for imputation
+meth[c('road_user')]="polyreg" 
+meth[c('Gender')]="logreg" 
+meth[c('Age')]="pmm"
+meth[c('time_of_day')]="pmm"
+
+imputed = mice(road_data, method=meth, predictorMatrix=predM, m=5)
+densityplot(imputed)
+imputed <- complete(imputed)
+sapply(imputed, function(x) sum(is.na(x)))
+
 # Deaths by date
 # date_data = read_excel(path='data/BITRE_ARDD_Fatalities_Apr_2019.xlsx', sheet = 3, na = c("", -9), skip = 2, col_types = c('date', 'numeric', 'numeric',
 #                                                                                                                        'text', 'text'))
@@ -395,25 +425,25 @@ props_2018
 #Xmas period is 12 days beginning Dec 23
 #Easter period is 5 days beginning thursday before good friday
 #total = 17 days / 365
-summary(as.factor(road_data$`Christmas Period`))
-summary(as.factor(road_data$`Easter Period`))
-
-road_data = road_data %>%
-  mutate(Is_holiday = ifelse(`Christmas Period`=='Yes' | `Easter Period`=='Yes', 'Yes', 'No'))
-
-# tally deaths
-holiday_df = road_data %>%
-  group_by(Is_holiday, Year) %>%
-  tally(name = 'Deaths')
-
-# create number of deaths per day
-holiday_df = holiday_df %>%
-  mutate(Deaths_per_day = ifelse(Is_holiday=='Yes', Deaths/17, Deaths/348)) # to get deaths per day if holiday /17 (17 days in holiday period), else /348 (365-17)
-
-holiday_p = ggplot(holiday_df, aes(x=Year, y=Deaths_per_day, colour=Is_holiday)) +
-  geom_line() +
-  scale_color_colorblind()
-holiday_p
+# summary(as.factor(road_data$`Christmas Period`))
+# summary(as.factor(road_data$`Easter Period`))
+# 
+# road_data = road_data %>%
+#   mutate(Is_holiday = ifelse(`Christmas Period`=='Yes' | `Easter Period`=='Yes', 'Yes', 'No'))
+# 
+# # tally deaths
+# holiday_df = road_data %>%
+#   group_by(Is_holiday, Year) %>%
+#   tally(name = 'Deaths')
+# 
+# # create number of deaths per day
+# holiday_df = holiday_df %>%
+#   mutate(Deaths_per_day = ifelse(Is_holiday=='Yes', Deaths/17, Deaths/348)) # to get deaths per day if holiday /17 (17 days in holiday period), else /348 (365-17)
+# 
+# holiday_p = ggplot(holiday_df, aes(x=Year, y=Deaths_per_day, colour=Is_holiday)) +
+#   geom_line() +
+#   scale_color_colorblind()
+# holiday_p
 
 
 
