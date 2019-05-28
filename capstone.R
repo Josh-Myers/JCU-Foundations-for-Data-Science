@@ -124,6 +124,12 @@ articulated = mv_census[6]
 articulated_prop = articulated/total
 prop_pop = rbind(mc_prop, bus_prop, heavy_rigid_prop, articulated_prop)
 
+# make age discrete
+# 0-17, 18-40, 40-60, 60+
+road_data$Gender = factor(road_data$Gender, levels = c('Male', 'Female'))
+road_data = road_data %>% 
+  mutate(age_cat = cut(Age, breaks = c(-Inf, 16, 40, 60, Inf), labels = c('0-16 years', '17-40 years', '41-60 years', '>60 years'))) 
+
 # year, month, day by state plots
 state_year_p = road_data %>% 
   mutate_at(vars(Year, State), factor) %>%
@@ -143,11 +149,11 @@ state_year_p
 
 # Make df deaths grouped by State
 deaths_by_year_state = road_data %>% 
-  group_by(State, Year) %>% 
+  group_by(State, Year, age_cat, Gender) %>% 
   tally(name = 'Deaths') 
 
 total_deaths = road_data %>% 
-  group_by(Year) %>% 
+  group_by(Year, age_cat, Gender) %>% 
   tally(name = 'Deaths') 
 
 total_deaths$State = 'Total'
@@ -169,40 +175,46 @@ death_pop_states = death_pop %>%
 death_pop_states$State = fct_drop(death_pop_states$State)
 
 # plot population by year for the States - probabily don't need to include this
-state_pop_p = ggplot(death_pop_states, aes(x=Year, y=Population/1000000, colour=State)) + # millions
-  geom_line() +
-  ylab('Population (millions)') +
-  scale_y_log10() +
-  scale_x_continuous(breaks = c(1990, 1995, 2000, 2005, 2010, 2015), labels = c('1990', '1995', '2000', '2005', '2010', '2015')) +
-  scale_colour_colorblind() +
-  ggtitle('Population Growth of Each State (1989 to 2018)') +
-  theme(plot.title = element_text(face='bold', hjust = 0.5, vjust = 0.5)) 
-state_pop_p
+# state_pop_p = ggplot(death_pop_states, aes(x=Year, y=Population/1000000, colour=State)) + # millions
+#   geom_line() +
+#   ylab('Population (millions)') +
+#   scale_y_log10() +
+#   scale_x_continuous(breaks = c(1990, 1995, 2000, 2005, 2010, 2015), labels = c('1990', '1995', '2000', '2005', '2010', '2015')) +
+#   scale_colour_colorblind() +
+#   ggtitle('Population Growth of Each State (1989 to 2018)') +
+#   theme(plot.title = element_text(face='bold', hjust = 0.5, vjust = 0.5)) 
+# state_pop_p
 
 # Normalize for state population 
 death_pop_states = death_pop_states %>% 
   mutate(death_proportion = Deaths / Population) %>% 
-  mutate(death_prop_per_10k = death_proportion * 10000)
+  mutate(death_prop_per_10k = death_proportion * 100000)
 
 # plot proportions
-prop_p_10k = ggplot(death_pop_states, aes(x=Year, y=death_prop_per_10k, colour=State)) + 
+# prop_p_10k = ggplot(death_pop_states, aes(x=Year, y=death_prop_per_10k, colour=State)) + 
+#   geom_line(alpha=0.5) +
+#   geom_smooth(method = 'loess', se=F) +
+#   ylab('Number of Deaths per 10,000 People') +
+#   scale_x_continuous(breaks = c(1990, 1995, 2000, 2005, 2010, 2015), labels = c('1990', '1995', '2000', '2005', '2010', '2015')) +
+#   scale_colour_colorblind() +
+#   ggtitle('Number of Deaths in Each State per 10,000 people (1989 to 2018)') +
+#   theme(plot.title = element_text(face='bold', hjust = 0.5, vjust = 0.5)) 
+# prop_p_10k # NT is overrepreseted
+
+#state_plots = plot_grid(state_year_p, state_pop_p, prop_p_10k, labels = c('A', 'B', 'C'), nrow = 1)
+
+prop_p_100k_sex_age = ggplot(death_pop_states, aes(x=Year, y=death_prop_per_10k, colour=State)) + 
   geom_line(alpha=0.5) +
   geom_smooth(method = 'loess', se=F) +
-  ylab('Number of Deaths per 10,000 People') +
+  ylab('Number of Deaths per 100,000') +
   scale_x_continuous(breaks = c(1990, 1995, 2000, 2005, 2010, 2015), labels = c('1990', '1995', '2000', '2005', '2010', '2015')) +
   scale_colour_colorblind() +
-  ggtitle('Number of Deaths in Each State per 10,000 people (1989 to 2018)') +
-  theme(plot.title = element_text(face='bold', hjust = 0.5, vjust = 0.5)) 
-prop_p_10k # NT is overrepreseted
+  ggtitle('Number of Deaths per 100,000 people (1989 to 2018)') +
+  theme(plot.title = element_text(face='bold', hjust = 0.5, vjust = 0.5)) +
+  scale_y_log10() +
+  facet_grid(age_cat~Gender)
+prop_p_100k_sex_age # NT young people especially males are overrepreseted
 
-state_plots = plot_grid(state_year_p, state_pop_p, prop_p_10k, labels = c('A', 'B', 'C'), nrow = 1)
-
-# age over time
-# make age discrete
-# 0-17, 18-40, 40-60, 60+
-road_data$Gender = factor(road_data$Gender, levels = c('Male', 'Female'))
-road_data = road_data %>% 
-  mutate(age_cat = cut(Age, breaks = c(-Inf, 16, 40, 60, Inf), labels = c('0-16', '17-40', '41-60', '>60'))) 
 age_p = ggplot(road_data, aes(x=Year, colour=age_cat, linetype=Gender)) +
   geom_line(stat = 'count') +
   scale_colour_colorblind() +
@@ -309,11 +321,14 @@ hour_p = road_data %>%
   facet_grid(age_cat~Gender)
 hour_p # 2-6pm is most deaths, secondary peak ~ midnight
 
-hour_day_p = ggplot(road_data, aes(x=hour_int, group=five_yr_interval, colour=five_yr_interval)) +
-  geom_line(stat = 'count') +
+hour_day_p = road_data %>% 
+  group_by(hour_int, Dayweek, age_cat, Gender) %>% 
+  summarise(count=n()) %>% 
+  ggplot(aes(x=hour_int, y=count, group=age_cat, colour=age_cat)) +
+  geom_line() +
   ylab('Number of Deaths') +
   scale_color_colorblind() +
-  facet_grid(Gender~Dayweek)
+  facet_grid(rows=vars(Gender), cols = vars(Dayweek))
 hour_day_p  # don't use
 
 # males vs females - far more males die on the road
@@ -348,9 +363,9 @@ road_data = road_data %>%
                                      ifelse(road_user=='Pedal cyclist', 'Cyclist', NA))))) 
 road_data$User = factor(road_data$User, levels = c('Car/Truck', 'Motorcycle', 'Pedestrian', 'Cyclist'))
 user_p = road_data %>% 
-  drop_na(User) %>%  # drop 77 NA
   ggplot(aes(x=Year, colour=User)) +
   geom_line(stat = 'count') +
+  ylab('Count') +
   scale_color_colorblind()
 user_p
 
@@ -394,9 +409,9 @@ props_2018 = props_2018 %>%
   geom_bar(stat='identity', position = 'dodge') +
   scale_color_colorblind() +
   scale_fill_colorblind() +
+  ggtitle('Proportion of Deaths vs Proportion in Overall Population')
   xlab('Type of Vehicle')
-props_2018
-
+props_2018 
 
 #christmas and easter
 #Xmas period is 12 days beginning Dec 23

@@ -79,6 +79,7 @@ Dist_sort = as.matrix(Dist_sort)
 # this colour are closer together, others are further apart
 
 numeric_cols = c('Age', 'MonthlyExpenses', 'YearsEmployed', 'CreditScore', 'MonthlyIncome', 'AccountBalance')
+# numeric_cols = select_if(Data, is.numeric) another way
 Data_numeric = Data[, numeric_cols]
 pearson_cor = cor(Data_numeric, method = 'pearson')
 spearman_cor = cor(Data_numeric, method = 'spearman')
