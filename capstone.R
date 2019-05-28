@@ -132,18 +132,19 @@ road_data = road_data %>%
 
 # year, month, day by state plots
 state_year_p = road_data %>% 
-  mutate_at(vars(Year, State), factor) %>%
-  group_by(Year, State) %>% 
+  #mutate_at(vars(Year, State), factor) %>%
+  group_by(Year, State, age_cat, Gender) %>% 
   summarise(n=n()) %>%
   ggplot(aes(x=Year, y=n, group=State, colour=State, fill=State)) + 
   geom_line(alpha=0.5) +
-  geom_smooth(alpha=0.2) +
+  geom_smooth(alpha=0.2, se=F) +
   ylab('Number of Deaths') +
   scale_y_continuous(trans = 'log10') +
-  scale_x_discrete(breaks = c(1990, 1995, 2000, 2005, 2010, 2015), labels = c('1990', '1995', '2000', '2005', '2010', '2015')) +
+  scale_x_continuous(breaks = c(1990, 1995, 2000, 2005, 2010, 2015), labels = c('1990', '1995', '2000', '2005', '2010', '2015')) +
   scale_colour_colorblind() +
   scale_fill_colorblind() +
   ggtitle('Number of Deaths for Each State (1989 to 2018)') +
+  facet_grid(age_cat~Gender) +
   theme(plot.title = element_text(face='bold', hjust = 0.5, vjust = 0.5)) 
 state_year_p
 
@@ -281,6 +282,7 @@ mth_p = road_data %>%
   geom_line() +
   ylab('Number of Deaths') +
   scale_x_continuous(breaks = 1:12, labels = month.abb) +
+  scale_y_log10() +
   scale_colour_colorblind() +
   scale_fill_colorblind() +
   labs(fill="Five-Year Interval") +
@@ -308,28 +310,31 @@ road_data$hour_int = as.integer(road_data$time_of_day)
 road_data$hour_int = factor(road_data$hour_int, levels = c(0:23)) 
 summary(road_data$hour_int)
 
-hour_p = road_data %>% 
-  group_by(hour_int, five_yr_interval, age_cat, Gender) %>% 
-  summarise(count=n()) %>% 
-  mutate(five_yr_ave = count/5) %>% 
-  ggplot(aes(x=hour_int, y=five_yr_ave, group=five_yr_interval, colour=five_yr_interval)) +
-  geom_line() +
-  ylab('Number of Deaths') +
-  scale_y_log10() +
-  scale_color_colorblind() +
-  scale_fill_colorblind() +
-  facet_grid(age_cat~Gender)
-hour_p # 2-6pm is most deaths, secondary peak ~ midnight
+# hour_p = road_data %>% 
+#   group_by(hour_int, five_yr_interval, age_cat, Gender) %>% 
+#   summarise(count=n()) %>% 
+#   mutate(five_yr_ave = count/5) %>% 
+#   ggplot(aes(x=hour_int, y=five_yr_ave, group=five_yr_interval, colour=five_yr_interval)) +
+#   geom_line() +
+#   ylab('Number of Deaths') +
+#   scale_y_log10() +
+#   scale_color_colorblind() +
+#   scale_fill_colorblind() +
+#   facet_grid(age_cat~Gender)
+# hour_p # 2-6pm is most deaths, secondary peak ~ midnight
 
 hour_day_p = road_data %>% 
   group_by(hour_int, Dayweek, age_cat, Gender) %>% 
   summarise(count=n()) %>% 
   ggplot(aes(x=hour_int, y=count, group=age_cat, colour=age_cat)) +
-  geom_line() +
+  geom_line(alpha=0.5) +
+  scale_x_discrete(breaks = c(0,3,6,9,12,15,18,21), labels = c('0', '3', '6', '9', '12', '15', '18', '21')) +
+  xlab('Time (24 hour)') +
+  geom_smooth(se=F, size=0.5) +
   ylab('Number of Deaths') +
   scale_color_colorblind() +
   facet_grid(rows=vars(Gender), cols = vars(Dayweek))
-hour_day_p  # don't use
+hour_day_p  # big peaks ~midnight for males 17-40, lesser so for females
 
 # males vs females - far more males die on the road
 # speed limit
@@ -339,7 +344,6 @@ hour_day_p  # don't use
 #   geom_bar(position = 'dodge') +
 #   scale_fill_colorblind()
 # sex_bar_p
-
 
 # # age by gender
 # age_sex_df = road_data %>% 
@@ -363,10 +367,16 @@ road_data = road_data %>%
                                      ifelse(road_user=='Pedal cyclist', 'Cyclist', NA))))) 
 road_data$User = factor(road_data$User, levels = c('Car/Truck', 'Motorcycle', 'Pedestrian', 'Cyclist'))
 user_p = road_data %>% 
-  ggplot(aes(x=Year, colour=User)) +
-  geom_line(stat = 'count') +
+  group_by(Year, User, age_cat, Gender) %>% 
+  summarise(n=n()) %>%
+  ggplot(aes(x=Year, y=n, colour=User)) +
+  geom_line(alpha=0.5) +
+  geom_smooth(se=F, size=0.5) +
+  scale_x_continuous(breaks = c(1990, 1995, 2000, 2005, 2010, 2015), labels = c('1990', '1995', '2000', '2005', '2010', '2015')) +
+  scale_y_log10() +
   ylab('Count') +
-  scale_color_colorblind()
+  scale_color_colorblind() +
+  facet_grid(age_cat~Gender)
 user_p
 
 # what proportion of deaths in 2018 were MC?
