@@ -1,7 +1,7 @@
 ---
-title: "FDS_Capstone"
-author: "Josh Myers"
-date: "25/05/2019"
+title: "An Analysis of the Australian Road Deaths Database (1989 to 2018)"
+author: "Joshua Myers"
+date: 
 output: html_document
 ---
 
@@ -9,57 +9,56 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+# Abstract
+asdf
+
+# Introduction
+Road deaths bla bla...
+Aim is to investigate road fatality data in Australia - trends over time, state, age, gender road user. 
+This report uses the road fatality data (ref), supplemented with data from A, b, c (state pop, road user, etc)
 Need to say it is structured data set
 
-## R Markdown
+# Data
+The Australian Road Deaths Database (ARDD) is published each month by the Bureau of Infrastructure, Transport and Regional Economics. This report uses the "Fatalities" dataset, which is a record of the number of fatalities resulting from vehicle crashes reported by the police to the State and Territory road safety authorities. This report uses the "ARDD Fatalities April 2019" data, which contains data from 50,160 road deaths that occured on Australian roads between January 1989 to May 2019. Each observation represents a death and includes a crash ID, state, month, year, day of the week, time, crash type (e.g., single, multiple, pedestrian), whether a bus, heavy rigid truck, or articulated truck was involved in the fatality, the speed limit, the type of road user killed (e.g., driver, passenger, pedestrian), gender, age, three variables relating to where the accident occured (e.g., whether it was a remote area, the name of the area), the type of road (e.g., local road or highway), and whether the accident occured during the Easter or Christmas period.
 
-
-
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r}
+```{r, echo=F}
 library(tidyverse)
-library(readxl)
 library(ggthemes)
 library(lubridate)
-library(cowplot)
 library(mice)
 theme_set(theme_minimal())
 
 # Import road fatalities data and impute missing
 # from here: https://www.bitre.gov.au/statistics/safety/fatal_road_crash_database.aspx
-road_data = read_excel(path = 'data/BITRE_ARDD_Fatalities_Apr_2019.xlsx', sheet = 2, na = c("", -9, 'Other/-9'), skip = 4)
+path = 'https://data.gov.au/data/dataset/5b530fb8-526e-4fbf-b0f6-aa24e84e4277/resource/fd646fdc-7788-4bea-a736-e4aeb0dd09a8/download/bitre_ardd_fatalities_apr_2019.csv'
+road_data = read.csv(path, header = T, na.strings = c("", -9, 'Other/-9'))
 # filter out 2019 data - not a complete year
 road_data = filter(road_data, Year != 2019)
 # Don't need Crash ID
-road_data = road_data %>% select(-`Crash ID`)
+road_data = road_data %>% select(-Crash.ID)
 road_data$State = factor(road_data$State, levels=c('NSW', 'Vic', 'Qld', 'WA', 'SA', 'Tas', 'ACT', 'NT'))
 road_data$Month = as.integer(road_data$Month)
 road_data$Dayweek = factor(road_data$Dayweek, levels = c('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'))
-# extract hour of day from Time column
-time_of_day <- ymd_hms(road_data$Time)
-road_data$time_of_day <- hour(time_of_day) + minute(time_of_day)/60
-road_data$`Bus Involvement` = as.factor(road_data$`Bus Involvement`)
-road_data$`Heavy Rigid Truck Involvement` = as.factor(road_data$`Heavy Rigid Truck Involvement`)
-road_data$`Articulated Truck Involvement` = as.factor(road_data$`Articulated Truck Involvement`)
+road_data$Bus.Involvement = as.factor(road_data$Bus.Involvement)
+road_data$Heavy.Rigid.Truck.Involvement = as.factor(road_data$Heavy.Rigid.Truck.Involvement)
+road_data$Articulated.Truck.Involvement = as.factor(road_data$Articulated.Truck.Involvement)
 road_data$Gender[road_data$Gender == 'Unspecified'] = NA
+road_data$Gender = droplevels(road_data$Gender)
 road_data$Gender = as.factor(road_data$Gender)
-road_data$`Road User` = as.factor(road_data$`Road User`)
+road_data$Road.User = as.factor(road_data$Road.User)
 #describe(road_data)
 # state 0 missing
 # month 0 missing
 # year 0 missing
 # day 0 missing
-# time 40 missing - drop
-# crash type 0 missing - drop
+# time 40 missing 
+# crash type 0 missing 
 # bus involvement 0 missing
 # heavy rigid truck involvement many missing (20493) - but I only use 2018 data
 truck_2018 = road_data %>% 
   filter(Year==2018) %>% 
-  summarise(count = sum(is.na(`Heavy Rigid Truck Involvement`)))
-truck_2018 # none missing for 2018
+  summarise(count = sum(is.na(Heavy.Rigid.Truck.Involvement)))
+#truck_2018 # none missing for 2018
 # articultated truck involevelment 0 missing
 # speed limit 1340 missing
 # road user 77 missing
@@ -71,10 +70,32 @@ truck_2018 # none missing for 2018
 # Xmas period 0 missing
 # Easter period 0 missing
 
+# create time_of_day
+time_of_day <- hm(road_data$Time, quiet = T)
+road_data$time_of_day <- hour(time_of_day) + minute(time_of_day)/60
+
 road_data = road_data %>% 
-  select(c(State:Dayweek, `Bus Involvement`:`Articulated Truck Involvement`, `Road User`:Age, time_of_day))
-road_data = rename(road_data, bus_involve=`Bus Involvement`, heavy_rigid_involve=`Heavy Rigid Truck Involvement`, 
-                          articulated_involve=`Articulated Truck Involvement`, road_user=`Road User`) # mice needs oneword variables
+  select(c(State:Dayweek, Bus.Involvement:Articulated.Truck.Involvement, Road.User:Age, time_of_day))
+road_data = rename(road_data, bus_involve=Bus.Involvement, heavy_rigid_involve=Heavy.Rigid.Truck.Involvement, 
+                          articulated_involve=Articulated.Truck.Involvement, road_user=Road.User) 
+```
+
+# Methods
+This analysis was done using R version x (cite), in RStudio (version y), supplemented by the *tidyverse*, *ggthemes*, *mice* and *lubridate* packages (ref). The *tidyverse* is a metapackage consisting of x,yz packages. 
+
+The dataset was downloaded as a CSV file from (put this as a ref) https://data.gov.au/data/dataset/5b530fb8-526e-4fbf-b0f6-aa24e84e4277/resource/fd646fdc-7788-4bea-a736-e4aeb0dd09a8/download/bitre_ardd_fatalities_apr_2019.csv
+
+Opened using the 'read.csv' function in base R (cite - with version). Missing data was coded as '-9' or 'Other/-9' in the dataset. I also set Gender values of 'Unspecified' as missing (NA), since there was only one of these.  
+This analysis uses data from Jan 1989 to December 2018. Data from 2019 was removed because it is not yet complete, and much of the present analysis counts data for each year. filtered out using the filter function in the dplyr package. 
+
+This analysis used the variables: State, Month, Year, Day of the Week, Time of Day, Bus Involvement, Heavy Rigid Truck Involvement, Articultaed Truck Involvement, Road User, Gender, and Age. Other variables were removed from the dataset using dplyr's 'select' function. The variable State was coded as an orded factor with levels set to decreasing State population size using the 'factor' function. Day of the Week was also coded as an ordered factor from Monday to Sunday. Gender, Bus Involvement, Heavy Rigid Truck Involvement and Articulated Truck involvement were coded as binary factors using the 'as.factor' funtion in base R. Road User was coded as an unordered factor using 'as.factor', and Month was set to be an integer using 'as.integer' in base R.  
+
+State, Month, Year, Day of the Week, Bus Involvement, Articulated Truck Involvement had no missing values. Time of day had 40 missing, Road User 77 missing, Gender 22 missing, and age 84 missing, which were imputed using multiple imputation using the 'mice' function from the *mice* package. Time
+
+Diagnositic plots of imputed values looked satisfactory, and are included in Appendix A. 
+
+```{r, echo=F}
+# Impute missing 
 init = mice(road_data, maxit=0) # need to impute road user (77), gender (22), age (84), time (40)
 meth = init$method
 predM = init$predictorMatrix
@@ -112,10 +133,12 @@ road_data = road_data %>%
                                 labels=five_years)) 
 ```
 
-## asdf
-
-
 ```{r}
+str(road_data$road_user)
+```
+
+
+```{r, echo=F}
 # Import state population data
 # from here: https://www.abs.gov.au/AUSSTATS/abs@.nsf/DetailsPage/3105.0.65.0012016?OpenDocument
 state_pop = read_excel('data/historical_state_pop.xls', sheet=4, skip = 4)
@@ -163,6 +186,8 @@ articulated_prop = articulated/total
 prop_pop = rbind(mc_prop, bus_prop, heavy_rigid_prop, articulated_prop)
 ```
 
+# Results and Discussion
+asdf
 
 ```{r, echo=F}
 # Fig 1
@@ -179,7 +204,7 @@ state_year_p = road_data %>%
   scale_x_continuous(breaks = c(1990, 1995, 2000, 2005, 2010, 2015), labels = c('1990', '1995', '2000', '2005', '2010', '2015')) +
   scale_colour_colorblind() +
   scale_fill_colorblind() +
-  ggtitle('Number of Deaths for Each State (1989 to 2018)') +
+  ggtitle('Number of Deaths by State (1989 to 2018)') +
   facet_grid(age_cat~Gender) +
   theme(plot.title = element_text(face='bold', hjust = 0.5, vjust = 0.5)) 
 plot(state_year_p)
@@ -242,7 +267,7 @@ age_p = ggplot(road_data, aes(x=Year, colour=age_cat, linetype=Gender)) +
   scale_x_continuous(breaks = c(1990, 1995, 2000, 2005, 2010, 2015), labels = c('1990', '1995', '2000', '2005', '2010', '2015')) +
   labs(colour='Age Group') +
   ylab('Number of Deaths') +
-  ggtitle('Number of Deaths Each Year by Age and Gender') +
+  ggtitle('Number of Deaths Each by Age and Gender') +
   theme(plot.title = element_text(face='bold', hjust = 0.5, vjust = 0.5)) 
 age_p # young men dominate the numbers - seem overrepresented - check against population stats for each age group - improving, but still highest 
 ```
@@ -369,7 +394,7 @@ hour_day_p = road_data %>%
   summarise(count=n()) %>% 
   ggplot(aes(x=hour_int, y=count, group=age_cat, colour=age_cat)) +
   geom_line(alpha=0.5) +
-  scale_x_discrete(breaks = c(0,3,6,9,12,15,18,21), labels = c('0', '3', '6', '9', '12', '15', '18', '21')) +
+  scale_x_discrete(breaks = c(0,6,12,18), labels = c('0', '6', '12', '18')) +
   xlab('Time (24 hour)') +
   geom_smooth(se=F, size=0.5, method = 'loess') +
   labs(colour='Age') +
@@ -379,7 +404,6 @@ hour_day_p = road_data %>%
   ggtitle('Number of Deaths by Day and Time') +
   theme(plot.title = element_text(face='bold', hjust = 0.5, vjust = 0.5)) 
 plot(hour_day_p)  # big peaks ~midnight for males 17-40, lesser so for females
-
 ```
 
 
@@ -401,7 +425,7 @@ user_p = road_data %>%
   geom_smooth(se=F, size=0.5, method = 'loess') +
   scale_x_continuous(breaks = c(1990, 1995, 2000, 2005, 2010, 2015), labels = c('1990', '1995', '2000', '2005', '2010', '2015')) +
   scale_y_log10() +
-  ylab('Count') +
+  ylab('Number of Deaths') +
   scale_color_colorblind() +
   facet_grid(age_cat~Gender) +
   ggtitle('Number of Deaths by Type of Road User') +
@@ -457,7 +481,14 @@ props_2018_p = props_2018 %>%
 plot(props_2018_p)
 ```
 
+# Conclusions
+asdf
 
+# References
+
+# Appendix A: MICE Plots
+
+# Appendix B: R Code
 
 
 

@@ -1,32 +1,30 @@
 # FDS capstone project
 library(tidyverse)
-library(readxl)
 library(ggthemes)
 library(lubridate)
-library(cowplot)
 #library(Hmisc)
 library(mice)
 theme_set(theme_minimal())
 
 # Import road death data
 # from here: https://www.bitre.gov.au/statistics/safety/fatal_road_crash_database.aspx
-road_data = read_excel(path = 'data/BITRE_ARDD_Fatalities_Apr_2019.xlsx', sheet = 2, na = c("", -9, 'Other/-9'), skip = 4)
+path = 'https://data.gov.au/data/dataset/5b530fb8-526e-4fbf-b0f6-aa24e84e4277/resource/fd646fdc-7788-4bea-a736-e4aeb0dd09a8/download/bitre_ardd_fatalities_apr_2019.csv'
+road_data = read.csv(path, header = T, na.strings = c("", -9, 'Other/-9'))
 # filter out 2019 data - not a complete year
 road_data = filter(road_data, Year != 2019)
 # Don't need Crash ID
-road_data = road_data %>% select(-`Crash ID`)
+road_data = road_data %>% select(-Crash.ID)
 road_data$State = factor(road_data$State, levels=c('NSW', 'Vic', 'Qld', 'WA', 'SA', 'Tas', 'ACT', 'NT'))
 road_data$Month = as.integer(road_data$Month)
 road_data$Dayweek = factor(road_data$Dayweek, levels = c('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'))
 # extract hour of day from Time column
-time_of_day <- ymd_hms(road_data$Time)
-road_data$time_of_day <- hour(time_of_day) + minute(time_of_day)/60
-road_data$`Bus Involvement` = as.factor(road_data$`Bus Involvement`)
-road_data$`Heavy Rigid Truck Involvement` = as.factor(road_data$`Heavy Rigid Truck Involvement`)
-road_data$`Articulated Truck Involvement` = as.factor(road_data$`Articulated Truck Involvement`)
+road_data$Bus.Involvement = as.factor(road_data$Bus.Involvement)
+road_data$Heavy.Rigid.Truck.Involvement = as.factor(road_data$Heavy.Rigid.Truck.Involvement)
+road_data$Articulated.Truck.Involvement = as.factor(road_data$Articulated.Truck.Involvement)
 road_data$Gender[road_data$Gender == 'Unspecified'] = NA
+road_data$Gender = droplevels(road_data$Gender)
 road_data$Gender = as.factor(road_data$Gender)
-road_data$`Road User` = as.factor(road_data$`Road User`)
+road_data$Road.User = as.factor(road_data$Road.User)
 #describe(road_data)
 # state 0 missing
 # month 0 missing
@@ -38,7 +36,7 @@ road_data$`Road User` = as.factor(road_data$`Road User`)
 # heavy rigid truck involvement many missing (20493) - but I only use 2018 data
 truck_2018 = road_data %>% 
   filter(Year==2018) %>% 
-  summarise(count = sum(is.na(`Heavy Rigid Truck Involvement`)))
+  summarise(count = sum(is.na(Heavy.Rigid.Truck.Involvement)))
 truck_2018 # none missing for 2018
 # articultated truck involevelment 0 missing
 # speed limit 1340 missing
@@ -51,10 +49,14 @@ truck_2018 # none missing for 2018
 # Xmas period 0 missing
 # Easter period 0 missing
 
+# now deal with time
+time_of_day <- hm(road_data$Time)
+road_data$time_of_day <- hour(time_of_day) + minute(time_of_day)/60
+
 road_data = road_data %>% 
-  select(c(State:Dayweek, `Bus Involvement`:`Articulated Truck Involvement`, `Road User`:Age, time_of_day))
-road_data = rename(road_data, bus_involve=`Bus Involvement`, heavy_rigid_involve=`Heavy Rigid Truck Involvement`, 
-                          articulated_involve=`Articulated Truck Involvement`, road_user=`Road User`) # mice needs oneword variables
+  select(c(State:Dayweek, Bus.Involvement:Articulated.Truck.Involvement, Road.User:Age, time_of_day))
+road_data = rename(road_data, bus_involve=Bus.Involvement, heavy_rigid_involve=Heavy.Rigid.Truck.Involvement, 
+                          articulated_involve=Articulated.Truck.Involvement, road_user=Road.User) 
 init = mice(road_data, maxit=0) # need to impute road user (77), gender (22), age (84), time (40)
 meth = init$method
 predM = init$predictorMatrix
@@ -78,6 +80,18 @@ densityplot(imputed) # can I somehow plot the categorical variables? see https:/
 plot(imputed)
 road_data <- complete(imputed)
 sapply(road_data, function(x) sum(is.na(x)))
+
+# make age discrete
+# 0-17, 18-40, 40-60, 60+
+road_data$Gender = factor(road_data$Gender, levels = c('Male', 'Female'))
+road_data = road_data %>% 
+  mutate(age_cat = cut(Age, breaks = c(-Inf, 16, 40, 60, Inf), labels = c('0-16 years', '17-40 years', '41-60 years', '>60 years'))) 
+
+# create 5-year intervals as factor
+five_years = c('1989 to 1993', '1994 to 1998', '1999 to 2003', '2004 to 2008', '2009 to 2013', '2014 to 2018')
+road_data = road_data %>% 
+  mutate(five_yr_interval = cut(Year, breaks = c(-Inf, 1993, 1998, 2003, 2008, 2013, Inf),
+                                labels=five_years)) 
 
 # Import population data
 # from here: https://www.abs.gov.au/AUSSTATS/abs@.nsf/DetailsPage/3105.0.65.0012016?OpenDocument
@@ -123,12 +137,6 @@ heavy_rigid_prop = heavy_rigid/total
 articulated = mv_census[6]
 articulated_prop = articulated/total
 prop_pop = rbind(mc_prop, bus_prop, heavy_rigid_prop, articulated_prop)
-
-# make age discrete
-# 0-17, 18-40, 40-60, 60+
-road_data$Gender = factor(road_data$Gender, levels = c('Male', 'Female'))
-road_data = road_data %>% 
-  mutate(age_cat = cut(Age, breaks = c(-Inf, 16, 40, 60, Inf), labels = c('0-16 years', '17-40 years', '41-60 years', '>60 years'))) 
 
 # year, month, day by state plots
 state_year_p = road_data %>% 
@@ -269,12 +277,6 @@ age_deaths_2016 = twenty_to_39_deaths %>%
 twenty_to_39_male_deaths_2016 = filter(age_deaths_2016, Age_20_39=='20 to 39', Gender=='Male') 
 # 364 deaths male (110 female)
 Prop_male_deaths_2016 = twenty_to_39_male_deaths_2016$n/total_deaths_2016$total # 28% of deaths, but only 14% of population
-
-# create 5-year intervals as factor
-five_years = c('1989 to 1993', '1994 to 1998', '1999 to 2003', '2004 to 2008', '2009 to 2013', '2014 to 2018')
-road_data = road_data %>% 
-  mutate(five_yr_interval = cut(Year, breaks = c(-Inf, 1993, 1998, 2003, 2008, 2013, Inf),
-                                labels=five_years)) 
 
 # month~age~gender faceted by 1/2 decades
 mth_p = road_data %>%
