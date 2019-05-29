@@ -137,7 +137,7 @@ state_year_p = road_data %>%
   summarise(n=n()) %>%
   ggplot(aes(x=Year, y=n, group=State, colour=State, fill=State)) + 
   geom_line(alpha=0.5) +
-  geom_smooth(alpha=0.2, se=F) +
+  geom_smooth(se=F, size=0.5, method = 'loess') +
   ylab('Number of Deaths') +
   scale_y_continuous(trans = 'log10') +
   scale_x_continuous(breaks = c(1990, 1995, 2000, 2005, 2010, 2015), labels = c('1990', '1995', '2000', '2005', '2010', '2015')) +
@@ -206,7 +206,7 @@ death_pop_states = death_pop_states %>%
 
 prop_p_100k_sex_age = ggplot(death_pop_states, aes(x=Year, y=death_prop_per_10k, colour=State)) + 
   geom_line(alpha=0.5) +
-  geom_smooth(method = 'loess', se=F) +
+  geom_smooth(method = 'loess', se=F, size=0.5) +
   ylab('Number of Deaths per 100,000') +
   scale_x_continuous(breaks = c(1990, 1995, 2000, 2005, 2010, 2015), labels = c('1990', '1995', '2000', '2005', '2010', '2015')) +
   scale_colour_colorblind() +
@@ -220,7 +220,10 @@ age_p = ggplot(road_data, aes(x=Year, colour=age_cat, linetype=Gender)) +
   geom_line(stat = 'count') +
   scale_colour_colorblind() +
   scale_x_continuous(breaks = c(1990, 1995, 2000, 2005, 2010, 2015), labels = c('1990', '1995', '2000', '2005', '2010', '2015')) +
-  labs(colour='Age Group')
+  labs(colour='Age Group') +
+  ylab('Number of Deaths') +
+  ggtitle('Number of Deaths Each Year by Age and Gender') +
+  theme(plot.title = element_text(face='bold', hjust = 0.5, vjust = 0.5)) 
 age_p # young men dominate the numbers - seem overrepresented - check against population stats for each age group - improving, but still highest 
 
 # proportion of population each age in 2016: https://profile.id.com.au/australia/five-year-age-groups
@@ -287,7 +290,9 @@ mth_p = road_data %>%
   scale_fill_colorblind() +
   labs(fill="Five-Year Interval") +
   labs(colour='Five-Year Interval') +
-  facet_grid(age_cat~Gender) 
+  facet_grid(age_cat~Gender) +
+  ggtitle('Number of Deaths by Month') +
+  theme(plot.title = element_text(face='bold', hjust = 0.5, vjust = 0.5)) 
 mth_p # trend upwards in December
 
 # day~age~gender of week
@@ -302,7 +307,9 @@ day_p = road_data %>%
   scale_x_discrete(labels = c('Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun')) +
   labs(colour="Five-Year Interval") +
   scale_colour_colorblind() +
-  facet_grid(age_cat~Gender)
+  facet_grid(age_cat~Gender) +
+  ggtitle('Number of Deaths by Day of the Week') +
+  theme(plot.title = element_text(face='bold', hjust = 0.5, vjust = 0.5)) 
 day_p # the peak of weekend deaths is dominated by the young men
 
 road_data$hour_int = as.integer(road_data$time_of_day)  
@@ -322,6 +329,20 @@ summary(road_data$hour_int)
 #   scale_fill_colorblind() +
 #   facet_grid(age_cat~Gender)
 # hour_p # 2-6pm is most deaths, secondary peak ~ midnight
+hour_p = road_data %>% 
+  group_by(hour_int, five_yr_interval, age_cat, Gender) %>% 
+  summarise(count=n()) %>% 
+  ggplot(aes(x=hour_int, y=count, group=five_yr_interval, colour=five_yr_interval)) +
+  geom_line(alpha=0.5) +
+  scale_x_discrete(breaks = c(0,3,6,9,12,15,18,21), labels = c('0', '3', '6', '9', '12', '15', '18', '21')) +
+  xlab('Time (24 hour)') +
+  geom_smooth(se=F, size=0.5, method = 'loess') +
+  ylab('Number of Deaths') +
+  scale_color_colorblind() +
+  facet_grid(rows=vars(age_cat), cols = vars(Gender)) +
+  ggtitle('Number of Deaths by Hour of the Day') +
+  theme(plot.title = element_text(face='bold', hjust = 0.5, vjust = 0.5)) 
+hour_p  # big peaks ~midnight for males 17-40, lesser so for females
 
 hour_day_p = road_data %>% 
   group_by(hour_int, Dayweek, age_cat, Gender) %>% 
@@ -330,10 +351,13 @@ hour_day_p = road_data %>%
   geom_line(alpha=0.5) +
   scale_x_discrete(breaks = c(0,3,6,9,12,15,18,21), labels = c('0', '3', '6', '9', '12', '15', '18', '21')) +
   xlab('Time (24 hour)') +
-  geom_smooth(se=F, size=0.5) +
+  geom_smooth(se=F, size=0.5, method = 'loess') +
+  labs(colour='Age') +
   ylab('Number of Deaths') +
   scale_color_colorblind() +
-  facet_grid(rows=vars(Gender), cols = vars(Dayweek))
+  facet_grid(rows=vars(Gender), cols = vars(Dayweek)) +
+  ggtitle('Number of Deaths by Day and Time') +
+  theme(plot.title = element_text(face='bold', hjust = 0.5, vjust = 0.5)) 
 hour_day_p  # big peaks ~midnight for males 17-40, lesser so for females
 
 # males vs females - far more males die on the road
@@ -371,12 +395,14 @@ user_p = road_data %>%
   summarise(n=n()) %>%
   ggplot(aes(x=Year, y=n, colour=User)) +
   geom_line(alpha=0.5) +
-  geom_smooth(se=F, size=0.5) +
+  geom_smooth(se=F, size=0.5, method = 'loess') +
   scale_x_continuous(breaks = c(1990, 1995, 2000, 2005, 2010, 2015), labels = c('1990', '1995', '2000', '2005', '2010', '2015')) +
   scale_y_log10() +
   ylab('Count') +
   scale_color_colorblind() +
-  facet_grid(age_cat~Gender)
+  facet_grid(age_cat~Gender) +
+  ggtitle('Number of Deaths by Type of Road User') +
+  theme(plot.title = element_text(face='bold', hjust = 0.5, vjust = 0.5)) 
 user_p
 
 # what proportion of deaths in 2018 were MC?
@@ -420,7 +446,10 @@ props_2018 = props_2018 %>%
   scale_color_colorblind() +
   scale_fill_colorblind() +
   ggtitle('Proportion of Deaths vs Proportion in Overall Population')
-  xlab('Type of Vehicle')
+  xlab('Type of Vehicle') +
+  ggtitle('Proportion of Vehicles xxxxx') +
+  theme(plot.title = element_text(face='bold', hjust = 0.5, vjust = 0.5)) 
+  
 props_2018 
 
 #christmas and easter
