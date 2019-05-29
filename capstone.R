@@ -439,18 +439,16 @@ names(props_2018) = c('Population', 'Deaths')
 props_2018$user = c('Motorcycle', 'Bus', 'Heavy Rigid Truck', 'Articulated Truck')
 
 # need to make long
-props_2018 = props_2018 %>% 
+props_2018_p = props_2018 %>% 
   gather('Group', 'Proportion', 1:2) %>% 
   ggplot(aes(x=factor(user, levels=c('Bus', 'Heavy Rigid Truck', 'Articulated Truck', 'Motorcycle')), y=Proportion, colour=Group, fill=Group)) +
   geom_bar(stat='identity', position = 'dodge') +
   scale_color_colorblind() +
   scale_fill_colorblind() +
-  ggtitle('Proportion of Deaths vs Proportion in Overall Population')
+  ggtitle('Proportion of Vehicle Types Involved in Fatatities \n Compared with Overall Population') +
   xlab('Type of Vehicle') +
-  ggtitle('Proportion of Vehicles xxxxx') +
   theme(plot.title = element_text(face='bold', hjust = 0.5, vjust = 0.5)) 
-  
-props_2018 
+props_2018_p
 
 #christmas and easter
 #Xmas period is 12 days beginning Dec 23
