@@ -70,9 +70,14 @@ truck_2018 = road_data %>%
 # Xmas period 0 missing
 # Easter period 0 missing
 
+# how many observations with missing data - gender, time, road user or age
+missing_observations = road_data %>% 
+  filter(is.na(Gender) | is.na(Time) | is.na(Road.User) | is.na(Age)) %>% 
+  select(State:Time, Bus.Involvement:Articulated.Truck.Involvement, Road.User:Age)
+
 # create time_of_day
 time_of_day <- hm(road_data$Time, quiet = T)
-road_data$time_of_day <- hour(time_of_day) + minute(time_of_day)/60
+road_data$time_of_day <- hour(time_of_day) 
 
 road_data = road_data %>% 
   select(c(State:Dayweek, Bus.Involvement:Articulated.Truck.Involvement, Road.User:Age, time_of_day))
@@ -88,11 +93,13 @@ The dataset was downloaded as a CSV file from (put this as a ref) https://data.g
 Opened using the 'read.csv' function in base R (cite - with version). Missing data was coded as '-9' or 'Other/-9' in the dataset. I also set Gender values of 'Unspecified' as missing (NA), since there was only one of these.  
 This analysis uses data from Jan 1989 to December 2018. Data from 2019 was removed because it is not yet complete, and much of the present analysis counts data for each year. filtered out using the filter function in the dplyr package. 
 
-This analysis used the variables: State, Month, Year, Day of the Week, Time of Day, Bus Involvement, Heavy Rigid Truck Involvement, Articultaed Truck Involvement, Road User, Gender, and Age. Other variables were removed from the dataset using dplyr's 'select' function. The variable State was coded as an orded factor with levels set to decreasing State population size using the 'factor' function. Day of the Week was also coded as an ordered factor from Monday to Sunday. Gender, Bus Involvement, Heavy Rigid Truck Involvement and Articulated Truck involvement were coded as binary factors using the 'as.factor' funtion in base R. Road User was coded as an unordered factor using 'as.factor', and Month was set to be an integer using 'as.integer' in base R.  
+This analysis used the variables: State, Month, Year, Day of the Week, Time of Day, Bus Involvement, Heavy Rigid Truck Involvement, Articultaed Truck Involvement, Road User, Gender, and Age. Other variables were removed from the dataset using dplyr's 'select' function. The variable State was coded as an orded factor with levels set to decreasing State population size using the 'factor' function. Day of the Week was also coded as an ordered factor from Monday to Sunday. Gender, Bus Involvement, Heavy Rigid Truck Involvement and Articulated Truck involvement were coded as binary factors using the 'as.factor' funtion in base R. Road User was coded as an unordered factor using 'as.factor', and Month was set to be an integer using 'as.integer' in base R. The variable Time was converted to a numeric variable indicating the hour of the day in 24-hour time that the accident happened. The Time variable was first set to hour and minite format using the 'hm' function from the *lubridate* package, and then the hour was extracted using the 'hour' function. 
 
-State, Month, Year, Day of the Week, Bus Involvement, Articulated Truck Involvement had no missing values. Time of day had 40 missing, Road User 77 missing, Gender 22 missing, and age 84 missing, which were imputed using multiple imputation using the 'mice' function from the *mice* package. Time
+State, Month, Year, Day of the Week, Bus Involvement, Articulated Truck Involvement had no missing values. Time of day had 40 missing, Road User 77 missing, Gender 22 missing, and age 84 missing. In total, there were 218 observations with missing data for one of these variables. imputed using multiple imputation using the 'mice' function from the *mice* package. Missing values for Age and Hour of the Day were imputed using predictive mean matching, Gender with logistic regression imputation, and Road User with polytomous regression imputation. Diagnositic plots of imputed values looked satisfactory, and are included in Appendix A. 
 
-Diagnositic plots of imputed values looked satisfactory, and are included in Appendix A. 
+Heavy Rigid Truck had 20,493 missing values, but I only use data from 2018 for this variable in this analysis, of which none were missing, so this variable was left as is. 
+
+
 
 ```{r, echo=F}
 # Impute missing 
@@ -115,10 +122,10 @@ meth[c('Age')]="pmm"
 meth[c('time_of_day')]="pmm"
 
 imputed = mice(road_data, method=meth, predictorMatrix=predM, m=5)
-densityplot(imputed) # can I somehow plot the categorical variables? see https://web.maths.unsw.edu.au/~dwarton/missingDataLab.html
-plot(imputed)
+#densityplot(imputed) # can I somehow plot the categorical variables? see https://web.maths.unsw.edu.au/~dwarton/missingDataLab.html
+#plot(imputed)
 road_data <- complete(imputed)
-sapply(road_data, function(x) sum(is.na(x)))
+#sapply(road_data, function(x) sum(is.na(x)))
 
 # make an age discrete variable
 # 0-17, 18-40, 40-60, 60+
@@ -133,9 +140,42 @@ road_data = road_data %>%
                                 labels=five_years)) 
 ```
 
-```{r}
-str(road_data$road_user)
+```{r, echo=F}
+# plots showing the variation in Age, Gender, State, Year, Month, Dayweek, time_of_day, road_user, bus_involve, heavy_rigid_involve, 
+age_dist = ggplot(road_data, aes(Age)) +
+  geom_density()
+age_dist
+sex_p = ggplot(road_data, aes(Gender)) +
+  geom_bar()
+sex_p
+state_p = ggplot(road_data, aes(State)) +
+  geom_bar() # interesting NT has more than act or tas even though lowest population (ordered by population)
+state_p
+year_p = ggplot(road_data, aes(Year)) +
+  geom_density()
+year_p
+month_p = ggplot(road_data, aes(as.integer(Month))) +
+  geom_density()
+month_p
+day_p = ggplot(road_data, aes(Dayweek)) +
+  geom_bar()
+time_p = ggplot(road_data, aes(time_of_day)) +
+  geom_density()
+time_p
+road_user_p = ggplot(road_data, aes(road_user)) +
+  geom_bar()
+road_user_p
+bus_p  = ggplot(road_data, aes(bus_involve)) +
+  geom_bar()
+bus_p
+truck_p  = ggplot(road_data, aes(heavy_rigid_involve)) +
+  geom_bar()
+truck_p
+articulated_p  = ggplot(road_data, aes(articulated_involve)) +
+  geom_bar()
+articulated_p
 ```
+Need distribution plots of all variables - looks like young people and males are overrepreseted? No obvious outliers that need attention. 
 
 
 ```{r, echo=F}
