@@ -1,8 +1,10 @@
 ---
 title: "An Analysis of the Australian Road Deaths Database (1989 to 2018)"
 author: "Joshua Myers"
-date: 
-output: html_document
+date: "null"
+output:
+  pdf_document: default
+  html_document: default
 fig_caption: yes
 ---
 
@@ -26,7 +28,7 @@ I used some other data sources to supplement the ARDD dataset for this analysis.
 
 The numbers of vehicle types in the general population was obtained from the Australian Bureau of Statistics Motorvehicle Census, 2018 (https://www.abs.gov.au/AUSSTATS/abs@.nsf/DetailsPage/9309.031%20Jan%202018?OpenDocument), again downloaded as Excel file. Data from Table 1 was used for 2018, which reports the number of various different types of vehicles for the 19.2 million registered motor vehicles in Australia. This dataset is referred to as the "motorvehicle dataset" in this report. 
 
-proportion of population each age in 2016: https://profile.id.com.au/australia/five-year-age-groups - This is referred to as the "age population" dataset in this report. 
+proportion of population each age in 2016: https://profile.id.com.au/australia/five-year-age-groups - This is referred to as the "age dataset" in this report. 
 males are approximately 50% of population in this age group https://www.abs.gov.au/ausstats/abs@.nsf/0/1CD2B1952AFC5E7ACA257298000F2E76?OpenDocument. 
 
 These population-level data were used with the ARDD dataset to create proportions for various categories, in order to identify groups with higher risk of death, for example, by comparing the proportion of young men aged 20 to 39 who died in motorvehicle accidents in a given year with the proportion of young men that age in the general population. Exactly how these additional datasets were used in conjunction with the ARDD data is described in the Methods section. 
@@ -127,7 +129,7 @@ meth[c('Gender')]="logreg"
 meth[c('Age')]="pmm"
 meth[c('time_of_day')]="pmm"
 
-imputed = mice(road_data, method=meth, predictorMatrix=predM, m=5)
+imputed = mice(road_data, method=meth, predictorMatrix=predM, m=1)
 #densityplot(imputed) # can I somehow plot the categorical variables? see https://web.maths.unsw.edu.au/~dwarton/missingDataLab.html
 #plot(imputed)
 road_data <- complete(imputed)
@@ -137,9 +139,9 @@ road_data <- complete(imputed)
 ```{r}
 dim(road_data)
 ```
-State, Month, Year, Day of the Week, Bus Involvement, Articulated Truck Involvement had no missing values. Time of day had 40 missing, Road User 77 missing, Gender 22 missing, and age 84 missing. In total, there were 218 observations with missing data for one of these variables. imputed using multiple imputation using the 'mice' function from the *mice* package. Missing values for Age and Hour of the Day were imputed using predictive mean matching, Gender with logistic regression imputation, and Road User with polytomous regression imputation. Diagnositic plots of imputed values looked satisfactory, and are included in Appendix A. Heavy Rigid Truck had 20,493 missing values, but I only use data from 2018 for this variable in this analysis, of which none were missing, so this variable was left as is. The imputed dataset had 11 variables providing information on 49,730 motorvehicle deaths between January 1989 and December 2018. I refer to this dataset as "the dataset" in this report. 
+State, Month, Year, Day of the Week, Bus Involvement, Articulated Truck Involvement had no missing values. Time of day had 40 missing, Road User 77 missing, Gender 22 missing, and age 84 missing. In total, there were 218 observations with missing data for one of these variables. imputed using multiple imputation using the 'mice' function from the *mice* package. Missing values for Age and Hour of the Day were imputed using predictive mean matching, Gender with logistic regression imputation, and Road User with polytomous regression imputation. Diagnositic plots of imputed values looked satisfactory, and are included in Appendix A. Heavy Rigid Truck had 20,493 missing values, but I only use data from 2018 for this variable in this analysis, of which none were missing, so this variable was left as is. The imputed dataset had 11 variables providing information on 49,730 motorvehicle deaths between January 1989 and December 2018. I refer to this dataset as the "road deaths dataset" in this report. 
 
-```{r figs, echo=F, fig.width=7, fig.height=6, fig.cap="\\label{fig:figs}Plots exploring the distributions of the variables Year, Month, Day, Hour, Age, Gender, State, and Road User "}
+```{r fig1, echo=F, fig.width=7, fig.height=6, fig.cap="\\label{fig:fig1}Plots exploring the distributions of the variables Year, Month, Day, Hour, Age, Gender, State, and Road User "}
 # summary statistics for bus, heavy_rigid and articulated involve
 b = summary(road_data$bus_involve)
 r = summary(road_data$heavy_rigid_involve)
@@ -253,12 +255,14 @@ articulated_prop = articulated/total
 prop_pop = rbind(mc_prop, bus_prop, heavy_rigid_prop, articulated_prop)
 ```
 
-For the analysis, I first grouped the dataset by Year, State, Age Group, and Gender, using dplyr's "group_by" function, counted the numbers in each plot using dplyr's "summarise" function in conjunction with the "n" helper function, then plotted the number of deaths as a function of Year, faceted by Age and Gender using the ggplot function from the ggplot2 package (ref). I then created a dataset that counted the number of deaths for each state, and also the total number of deaths, using the group_by and tally functions from dplyr. Joined this dataset to the population dataset using dplyr's "full_join" function, after reshaping the population dataset into long form using tidyr's "gather" function. I used this dataset to create a variable, the "Number of Deaths per 100,000 people" for each state, by dividing the number of deaths each for each state by the population for that year, then multiplying by 100,000, using dplyr's mutate function. This data was then plotted using ggplot2. I then plotted the number of deaths for each age group as a function of Year for males and females, and used the Age 
+For the analysis, I first grouped the dataset by Year, State, Age Group, and Gender, using dplyr's "group_by" function, counted the numbers in each plot using dplyr's "summarise" function in conjunction with the "n" helper function, then plotted the number of deaths as a function of Year, faceted by Age and Gender using the ggplot function from the ggplot2 package (ref). I then created a dataset that counted the number of deaths for each state, and also the total number of deaths, using the group_by and tally functions from dplyr. Joined this dataset to the population dataset using dplyr's "full_join" function, after reshaping the population dataset into long form using tidyr's "gather" function. I used this dataset to create a variable, the "Number of Deaths per 100,000 people" for each state, by dividing the number of deaths each for each state by the population for that year, then multiplying by 100,000, using dplyr's mutate function. This data was then plotted using ggplot2. I then plotted the number of deaths for each age group as a function of Year for males and females. I used the age population dataset to calculate the proportion of Australians aged 20 to 39 years in 2016, and then calculated the proportion of males aged 20 to 39 in the road deaths dataset using dplyr's mutate, group_by tally and filter functions. 
+
+I then plotted number of deaths by Month of the Year, Day of the Week, and Hour of the Day grouped by Five-Year Interval, Age Group and Gender using the ggplot2 package. The plots were faceted by Age Group and Gender using ggplot2's "facet_grid" function. In a similar fashion I plotted the number of deaths each hour of the day for each day of the week for each age group and gender. 
 
 # Results and Discussion
 asdf
 
-```{r, echo=F}
+```{r fig2, echo=F, fig.width=7, fig.height=6, fig.cap="\\label{fig:fig2}The number of deaths in each State from 1989 to 2018 grouped by Age Group and Gender."}
 # Fig 1
 # year, month, day by state plots
 state_year_p = road_data %>% 
@@ -279,7 +283,7 @@ state_year_p = road_data %>%
 state_year_p
 ```
 
-```{r, echo=F}
+```{r fig3, echo=F, fig.width=7, fig.height=6, fig.cap="\\label{fig:fig3}The number of deaths per 100,000 people for each State from 1989 to 2018 grouped by Age Group and Gender."}
 # Make df deaths grouped by State
 deaths_by_year_state = road_data %>% 
   group_by(State, Year, age_cat, Gender) %>% 
@@ -326,7 +330,7 @@ prop_p_100k_sex_age = ggplot(death_pop_states, aes(x=Year, y=death_prop_per_100k
 prop_p_100k_sex_age # NT young people especially males are overrepreseted
 ```
 
-```{r, echo=F}
+```{r fig4, echo=F, fig.width=7, fig.height=6, fig.cap="\\label{fig:fig4}The number of deaths for each age group and gender from 1989 to 2018."}
 # Fig 3, age plot
 age_p = ggplot(road_data, aes(x=Year, colour=age_cat, linetype=Gender)) +
   geom_line(stat = 'count') +
@@ -386,8 +390,7 @@ Prop_male_deaths_2016 = twenty_to_39_male_deaths_2016$n/total_deaths_2016$total 
 ```
 
 
-
-```{r}
+```{r fig5, echo=F, fig.width=7, fig.height=6, fig.cap="\\label{fig:fig5}The number of deaths in each month for each five-year interval for each age group and gender."}
 # Fig 4.
 # month~age~gender faceted by 1/2 decades
 mth_p = road_data %>%
@@ -410,7 +413,7 @@ plot(mth_p) # trend upwards in December
 ```
 
 
-```{r, echo=F}
+```{r fig6, echo=F, fig.width=7, fig.height=6, fig.cap="\\label{fig:fig6}The number of deaths each day of the week for each five-year interval for each age group and gender."}
 # fig 5.
 # day~age~gender of week
 day_p = road_data %>% 
@@ -431,12 +434,12 @@ plot(day_p) # the peak of weekend deaths is dominated by the young men
 
 ```
 
-```{r, echo=F}
+```{r fig7, echo=F, fig.width=7, fig.height=6, fig.cap="\\label{fig:fig7}The number of deaths in by hour of the day for each five-year interval for each age group and gender."}
 # Fig 6
 road_data$hour_int = as.integer(road_data$time_of_day)  
 # 12 pm to 11am for plotting
 road_data$hour_int = factor(road_data$hour_int, levels = c(0:23)) 
-summary(road_data$hour_int)
+#summary(road_data$hour_int)
 
 hour_p = road_data %>% 
   group_by(hour_int, five_yr_interval, age_cat, Gender) %>% 
@@ -454,7 +457,7 @@ hour_p = road_data %>%
 plot(hour_p)  # big peaks ~midnight for males 17-40, lesser so for females
 ```
 
-```{r, echo=F}
+```{r fig8, echo=F, fig.width=7, fig.height=6, fig.cap="\\label{fig:fig8}The number of deaths in each hour of the day for each day of the week for each five-year interval for each age group and gender."}
 # fig 7
 hour_day_p = road_data %>% 
   group_by(hour_int, Dayweek, age_cat, Gender) %>% 
