@@ -49,9 +49,14 @@ truck_2018 # none missing for 2018
 # Xmas period 0 missing
 # Easter period 0 missing
 
+# how many observations had missing time, road_user, gender, age
+missing_data = road_data %>% 
+  filter(is.na(Gender) | is.na(Time) | is.na(Road.User) | is.na(Age)) %>% 
+  select(State:Time, Bus.Involvement:Articulated.Truck.Involvement, Road.User:Age)
+
 # now deal with time
-time_of_day <- hm(road_data$Time)
-road_data$time_of_day <- hour(time_of_day) + minute(time_of_day)/60
+time_of_day <- hm(road_data$Time, quiet = T)
+road_data$time_of_day <- hour(time_of_day) 
 
 road_data = road_data %>% 
   select(c(State:Dayweek, Bus.Involvement:Articulated.Truck.Involvement, Road.User:Age, time_of_day))
