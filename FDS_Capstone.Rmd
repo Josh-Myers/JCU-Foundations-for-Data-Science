@@ -1,15 +1,14 @@
 ---
 title: "An Analysis of the Australian Road Deaths Database (1989 to 2018)"
 author: "Joshua Myers"
-date: "null"
-output:
-  pdf_document: default
-  html_document: default
+date: 'null'
+output: word_document
+fontfamily: arev
 fig_caption: yes
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = F)
 ```
 
 # Abstract
@@ -24,7 +23,7 @@ Need to say it is structured data set
 # Data
 The Australian Road Deaths Database (ARDD) is published each month by the Bureau of Infrastructure, Transport and Regional Economics. This report uses the "Fatalities" dataset, which is a record of the number of fatalities resulting from vehicle crashes reported by the police to the State and Territory road safety authorities. This report uses the "ARDD Fatalities April 2019" data, which contains data from 50,160 road deaths that occured on Australian roads between January 1989 to May 2019. Each observation represents a death and includes a crash ID, state, month, year, day of the week, time, crash type (e.g., single, multiple, pedestrian), whether a bus, heavy rigid truck, or articulated truck was involved in the fatality, the speed limit, the type of road user killed (e.g., driver, passenger, pedestrian), gender, age, three variables relating to where the accident occured (e.g., whether it was a remote area, the name of the area), the type of road (e.g., local road or highway), and whether the accident occured during the Easter or Christmas period.
 
-I used some other data sources to supplement the ARDD dataset for this analysis. State population over time data from the Australian Bureau of Statistics Australian Historical Population Statistics, 2019, Table 1.3: Population and components of change, for the states and territories, form 1971 to 2016 which was downloaded as an Excel file, and imported using the "read_excel" function from the *readxl* package. Population projections for 2017 and 2018 were obtained  for 2017, 2018 , Population Projections, Australia, 2017 (base) – 2066 downloaded from (https://www.abs.gov.au/AUSSTATS/abs@.nsf/Lookup/3222.0Main+Features12017%20(base)%20-%202066?OpenDocument) again, as an Excel file, and imported using read_excel. I extrated the population data for each state and the total population from 1989 to 2016 from the historical Australian Historical Population dataset, and added to this the projected populations for each state and the nation from the Population Projections data. The dataset with the state popualation data from 1989 to 2018 is referred to as the "population dataset" in this report. 
+I used some other data sources to supplement the ARDD dataset for this analysis. State population over time data from the Australian Bureau of Statistics Australian Historical Population Statistics, 2019, Table 1.3: Population and components of change, for the states and territories, form 1971 to 2016 which was downloaded as an Excel file, and imported using the `read_excel` function from the `readxl` package. Population projections for 2017 and 2018 were obtained  for 2017, 2018 , Population Projections, Australia, 2017 (base) – 2066 downloaded from (https://www.abs.gov.au/AUSSTATS/abs@.nsf/Lookup/3222.0Main+Features12017%20(base)%20-%202066?OpenDocument) again, as an Excel file, and imported using read_excel. I extrated the population data for each state and the total population from 1989 to 2016 from the historical Australian Historical Population dataset, and added to this the projected populations for each state and the nation from the Population Projections data. The dataset with the state popualation data from 1989 to 2018 is referred to as the "population dataset" in this report. 
 
 The numbers of vehicle types in the general population was obtained from the Australian Bureau of Statistics Motorvehicle Census, 2018 (https://www.abs.gov.au/AUSSTATS/abs@.nsf/DetailsPage/9309.031%20Jan%202018?OpenDocument), again downloaded as Excel file. Data from Table 1 was used for 2018, which reports the number of various different types of vehicles for the 19.2 million registered motor vehicles in Australia. This dataset is referred to as the "motorvehicle dataset" in this report. 
 
@@ -33,7 +32,7 @@ males are approximately 50% of population in this age group https://www.abs.gov.
 
 These population-level data were used with the ARDD dataset to create proportions for various categories, in order to identify groups with higher risk of death, for example, by comparing the proportion of young men aged 20 to 39 who died in motorvehicle accidents in a given year with the proportion of young men that age in the general population. Exactly how these additional datasets were used in conjunction with the ARDD data is described in the Methods section. 
 
-```{r, echo=F}
+```{r, echo=FALSE, include=FALSE}
 library(tidyverse)
 library(ggthemes)
 library(lubridate)
@@ -100,16 +99,16 @@ road_data = rename(road_data, bus_involve=Bus.Involvement, heavy_rigid_involve=H
 ```
 
 # Methods
-This analysis was done using R version x (cite), in RStudio (version y), supplemented by the *tidyverse*, *ggthemes*, *mice* and *lubridate* packages (ref). The *tidyverse* is a metapackage consisting of x,yz packages. 
+This analysis was done using R version x (cite), in RStudio (version y), supplemented by the `tidyverse`, `ggthemes`, `mice` and `lubridate` packages (ref). The `tidyverse` is a metapackage consisting of x,yz packages. 
 
 The dataset was downloaded as a CSV file from (put this as a ref) https://data.gov.au/data/dataset/5b530fb8-526e-4fbf-b0f6-aa24e84e4277/resource/fd646fdc-7788-4bea-a736-e4aeb0dd09a8/download/bitre_ardd_fatalities_apr_2019.csv
 
 Opened using the 'read.csv' function in base R (cite - with version). Missing data was coded as '-9' or 'Other/-9' in the dataset. I also set Gender values of 'Unspecified' as missing (NA), since there was only one of these.  
 This analysis uses data from Jan 1989 to December 2018. Data from 2019 was removed because it is not yet complete, and much of the present analysis counts data for each year. filtered out using the filter function in the dplyr package. 
 
-This analysis used the variables: State, Month, Year, Day of the Week, Time of Day, Bus Involvement, Heavy Rigid Truck Involvement, Articultaed Truck Involvement, Road User, Gender, and Age. Other variables were removed from the dataset using dplyr's 'select' function. The variable State was coded as an orded factor with levels set to decreasing State population size using the 'factor' function. Month was set to be an ordered factor, integer using 'factor' in base R, and Day of the Week was also coded as an ordered factor from Monday to Sunday. Gender, Bus Involvement, Heavy Rigid Truck Involvement and Articulated Truck involvement were coded as binary factors using the 'as.factor' funtion in base R. Road User was coded as an unordered factor using 'as.factor',  The variable Time was converted to a numeric variable indicating the hour of the day in 24-hour time that the accident happened. The Time variable was first set to hour and minite format using the 'hm' function from the *lubridate* package, and then the hour was extracted using the 'hour' function. 
+This analysis used the variables: State, Month, Year, Day of the Week, Time of Day, Bus Involvement, Heavy Rigid Truck Involvement, Articultaed Truck Involvement, Road User, Gender, and Age. Other variables were removed from the dataset using dplyr's 'select' function. The variable State was coded as an orded factor with levels set to decreasing State population size using the `factor` function. Month was set to be an ordered factor, integer using `factor` in base R, and Day of the Week was also coded as an ordered factor from Monday to Sunday. Gender, Bus Involvement, Heavy Rigid Truck Involvement and Articulated Truck involvement were coded as binary factors using the `as.factor` funtion in base R. Road User was coded as an unordered factor using `as.factor`,  The variable Time was converted to a numeric variable indicating the hour of the day in 24-hour time that the accident happened. The Time variable was first set to hour and minite format using the 'hm' function from the `lubridate` package, and then the hour was extracted using the 'hour' function. 
 
-```{r, echo=F}
+```{r, cache = TRUE, echo=F, include=F}
 # Impute missing 
 init = mice(road_data, maxit=0) # need to impute road user (77), gender (22), age (84), time (40)
 meth = init$method
@@ -139,9 +138,9 @@ road_data <- complete(imputed)
 ```{r}
 dim(road_data)
 ```
-State, Month, Year, Day of the Week, Bus Involvement, Articulated Truck Involvement had no missing values. Time of day had 40 missing, Road User 77 missing, Gender 22 missing, and age 84 missing. In total, there were 218 observations with missing data for one of these variables. imputed using multiple imputation using the 'mice' function from the *mice* package. Missing values for Age and Hour of the Day were imputed using predictive mean matching, Gender with logistic regression imputation, and Road User with polytomous regression imputation. Diagnositic plots of imputed values looked satisfactory, and are included in Appendix A. Heavy Rigid Truck had 20,493 missing values, but I only use data from 2018 for this variable in this analysis, of which none were missing, so this variable was left as is. The imputed dataset had 11 variables providing information on 49,730 motorvehicle deaths between January 1989 and December 2018. I refer to this dataset as the "road deaths dataset" in this report. 
+State, Month, Year, Day of the Week, Bus Involvement, Articulated Truck Involvement had no missing values. Time of day had 40 missing, Road User 77 missing, Gender 22 missing, and age 84 missing. In total, there were 218 observations with missing data for one of these variables. imputed using multiple imputation using the `mice` function from the `mice` package. Missing values for Age and Hour of the Day were imputed using predictive mean matching, Gender with logistic regression imputation, and Road User with polytomous regression imputation. Diagnositic plots of imputed values looked satisfactory, and are included in Appendix A. Heavy Rigid Truck had 20,493 missing values, but I only use data from 2018 for this variable in this analysis, of which none were missing, so this variable was left as is. The imputed dataset had 11 variables providing information on 49,730 motorvehicle deaths between January 1989 and December 2018. I refer to this dataset as the "road deaths dataset" in this report. 
 
-```{r fig1, echo=F, fig.width=7, fig.height=6, fig.cap="\\label{fig:fig1}Plots exploring the distributions of the variables Year, Month, Day, Hour, Age, Gender, State, and Road User "}
+```{r fig1, cache = TRUE, echo=F, fig.cap="\\label{fig:fig1}Plots exploring the distributions of the variables Year, Month, Day, Hour, Age, Gender, State, and Road User "}
 # summary statistics for bus, heavy_rigid and articulated involve
 b = summary(road_data$bus_involve)
 r = summary(road_data$heavy_rigid_involve)
@@ -191,7 +190,7 @@ plot_grid(year_p, month_p, day_p, time_p, age_dist, sex_p, state_p, user_p, labe
 
 Figure 1 shows exploratory plots for the variables Year, Month, Day of the Week, Hour of the Day, Age, Gender, State, and Type of Road User. Numeric variables are plotted as a distribution, and factors as bar plots, which count the number of occurences for each factor level. There are no apparent issues with the data (e.g., factors have the expected categories), or obviously incorrect outliers, for example, the maximum year is 2018, and maximum hour is 23, as expected. The plot for Year shows that the number of deaths has significantly decreased over time. Friday to Sunday have more deaths than other days of the week, and the afternoon appears to be the most dangerous time to be on the road, with a secondary peak in the distribution at around midnight. Young people seem to be at much more at risk of dying, with a large peak in the distribution for age at around 20 years. Over twice as many males dying than females. The plot for state generally shows that the number of deaths decreases as state population decreases (the x-axis is ordered by population size largest to smallest from left to right), with the exception of the Northern Territory (NT), which has the smallest population, but more deaths than the Australian Capital Territory (ACT) and Tasmania. Buses were involved in 941 deaths, and articulated trucks were involved in 5071 deaths. Heavy rigid trucks were involved in 1400 deaths, although, as mentioned, there were many missing values for this variable (>20,000). 
 
-```{r, echo=F}
+```{r, echo=F, cache = TRUE}
 # make an age discrete variable
 # 0-17, 18-40, 40-60, 60+
 road_data$Gender = factor(road_data$Gender, levels = c('Male', 'Female'))
@@ -205,7 +204,7 @@ road_data = road_data %>%
                                 labels=five_years)) 
 ```
 
-To prepare the data for analysis, I created two new discrete variables from the continuous variables Age and Year. I made a variable Age Group by splitting Age into four groups, 0 to 16, 17 to 40, 41 to 60 and >60 years, and another 5-Year Interval by dividing Year into five-year intervals. These variables were created using the "mutate" function from the *dplyr* package, in conjunction with the "cut" function from base R. The new discrete variables were used in some of the plots, for example to show the effect of age on the number of deaths over time for different age groups. 
+To prepare the data for analysis, I created two new discrete variables from the continuous variables Age and Year. I made a variable Age Group by splitting Age into four groups, 0 to 16, 17 to 40, 41 to 60 and >60 years, and another 5-Year Interval by dividing Year into five-year intervals. These variables were created using the `mutate` function from the `dplyr` package, in conjunction with the `cut` function from base R. The new discrete variables were used in some of the plots, for example to show the effect of age on the number of deaths over time for different age groups. 
 
 ```{r, echo=F}
 # Import state population data
@@ -261,8 +260,21 @@ I then plotted number of deaths by Month of the Year, Day of the Week, and Hour 
 
 # Results and Discussion
 asdf
+```{r fig4, echo=F, cache = TRUE, fig.cap="\\label{fig:fig4}The number of deaths for each age group and gender from 1989 to 2018."}
+# Fig 3, age plot
+age_p = ggplot(road_data, aes(x=Year, colour=age_cat, linetype=Gender)) +
+  geom_line(stat = 'count') +
+  scale_colour_colorblind() +
+  scale_x_continuous(breaks = c(1990, 1995, 2000, 2005, 2010, 2015), labels = c('1990', '1995', '2000', '2005', '2010', '2015')) +
+  labs(colour='Age Group') +
+  ylab('Number of Deaths') +
+  ggtitle('Number of Deaths Each by Age and Gender') +
+  theme(plot.title = element_text(face='bold', hjust = 0.5, vjust = 0.5)) 
+age_p # young men dominate the numbers - seem overrepresented - check against population stats for each age group - improving, but still highest 
+```
 
-```{r fig2, echo=F, fig.width=7, fig.height=6, fig.cap="\\label{fig:fig2}The number of deaths in each State from 1989 to 2018 grouped by Age Group and Gender."}
+
+```{r fig2, cache = TRUE, echo=F, fig.cap="\\label{fig:fig2}The number of deaths in each State from 1989 to 2018 grouped by Age Group and Gender."}
 # Fig 1
 # year, month, day by state plots
 state_year_p = road_data %>% 
@@ -283,7 +295,7 @@ state_year_p = road_data %>%
 state_year_p
 ```
 
-```{r fig3, echo=F, fig.width=7, fig.height=6, fig.cap="\\label{fig:fig3}The number of deaths per 100,000 people for each State from 1989 to 2018 grouped by Age Group and Gender."}
+```{r fig3, echo=F, cache = TRUE, fig.cap="\\label{fig:fig3}The number of deaths per 100,000 people for each State from 1989 to 2018 grouped by Age Group and Gender."}
 # Make df deaths grouped by State
 deaths_by_year_state = road_data %>% 
   group_by(State, Year, age_cat, Gender) %>% 
@@ -330,20 +342,7 @@ prop_p_100k_sex_age = ggplot(death_pop_states, aes(x=Year, y=death_prop_per_100k
 prop_p_100k_sex_age # NT young people especially males are overrepreseted
 ```
 
-```{r fig4, echo=F, fig.width=7, fig.height=6, fig.cap="\\label{fig:fig4}The number of deaths for each age group and gender from 1989 to 2018."}
-# Fig 3, age plot
-age_p = ggplot(road_data, aes(x=Year, colour=age_cat, linetype=Gender)) +
-  geom_line(stat = 'count') +
-  scale_colour_colorblind() +
-  scale_x_continuous(breaks = c(1990, 1995, 2000, 2005, 2010, 2015), labels = c('1990', '1995', '2000', '2005', '2010', '2015')) +
-  labs(colour='Age Group') +
-  ylab('Number of Deaths') +
-  ggtitle('Number of Deaths Each by Age and Gender') +
-  theme(plot.title = element_text(face='bold', hjust = 0.5, vjust = 0.5)) 
-age_p # young men dominate the numbers - seem overrepresented - check against population stats for each age group - improving, but still highest 
-```
-
-```{r, echo=F}
+```{r, echo=F, cache = TRUE}
 # proportion of population each age in 2016: https://profile.id.com.au/australia/five-year-age-groups
 zero_to_4 = 0.06
 five_to_9 = 0.06
@@ -390,51 +389,53 @@ Prop_male_deaths_2016 = twenty_to_39_male_deaths_2016$n/total_deaths_2016$total 
 ```
 
 
-```{r fig5, echo=F, fig.width=7, fig.height=6, fig.cap="\\label{fig:fig5}The number of deaths in each month for each five-year interval for each age group and gender."}
-# Fig 4.
-# month~age~gender faceted by 1/2 decades
-mth_p = road_data %>%
-  group_by(Month, five_yr_interval, age_cat, Gender) %>%
-  summarise(count=n()) %>%
-  mutate(five_yr_ave = count/5)  %>%
-  ggplot(aes(x=Month, y=five_yr_ave, group=five_yr_interval, colour=five_yr_interval)) +
-  geom_line() +
-  ylab('Number of Deaths') +
-  scale_x_continuous(breaks = 1:12, labels = month.abb) +
-  scale_y_log10() +
-  scale_colour_colorblind() +
-  scale_fill_colorblind() +
-  labs(fill="Five-Year Interval") +
-  labs(colour='Five-Year Interval') +
-  facet_grid(age_cat~Gender) +
-  ggtitle('Number of Deaths by Month') +
-  theme(plot.title = element_text(face='bold', hjust = 0.5, vjust = 0.5)) 
-plot(mth_p) # trend upwards in December
+```{r, echo=FALSE, cache = TRUE, include=FALSE}
+#{r fig5, echo=F, fig.width=7, fig.height=6, fig.cap="\\label{fig:fig5}The number of deaths in each month for each five-year interval for each age group and gender."}
+# # Fig 4.
+# # month~age~gender faceted by 1/2 decades
+# mth_p = road_data %>%
+#   group_by(Month, five_yr_interval, age_cat, Gender) %>%
+#   summarise(count=n()) %>%
+#   mutate(five_yr_ave = count/5)  %>%
+#   ggplot(aes(x=Month, y=five_yr_ave, group=five_yr_interval, colour=five_yr_interval)) +
+#   geom_line() +
+#   ylab('Number of Deaths') +
+#   scale_x_continuous(breaks = 1:12, labels = month.abb) +
+#   scale_y_log10() +
+#   scale_colour_colorblind() +
+#   scale_fill_colorblind() +
+#   labs(fill="Five-Year Interval") +
+#   labs(colour='Five-Year Interval') +
+#   facet_grid(age_cat~Gender) +
+#   ggtitle('Number of Deaths by Month') +
+#   theme(plot.title = element_text(face='bold', hjust = 0.5, vjust = 0.5)) 
+# plot(mth_p) # trend upwards in December
 ```
 
 
-```{r fig6, echo=F, fig.width=7, fig.height=6, fig.cap="\\label{fig:fig6}The number of deaths each day of the week for each five-year interval for each age group and gender."}
-# fig 5.
-# day~age~gender of week
-day_p = road_data %>% 
-  group_by(Dayweek, five_yr_interval, age_cat, Gender) %>% 
-  summarise(count=n()) %>% 
-  mutate(five_yr_ave = count/5) %>% 
-  ggplot(aes(x=Dayweek, y=five_yr_ave,  group=five_yr_interval, colour=five_yr_interval)) +
-  geom_line() +
-  ylab('Number of Deaths') +
-  xlab('Day of Week') +
-  scale_x_discrete(labels = c('Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun')) +
-  labs(colour="Five-Year Interval") +
-  scale_colour_colorblind() +
-  facet_grid(age_cat~Gender) +
-  ggtitle('Number of Deaths by Day of the Week') +
-  theme(plot.title = element_text(face='bold', hjust = 0.5, vjust = 0.5)) 
-plot(day_p) # the peak of weekend deaths is dominated by the young men
-
+```{r, echo=FALSE, cache = TRUE, include=F}
+#{r fig6, echo=F, fig.width=7, fig.height=6, fig.cap="\\label{fig:fig6}The number of deaths each day of the week for each five-year interval for each age group and gender."}
+# # fig 5.
+# # day~age~gender of week
+# day_p = road_data %>% 
+#   group_by(Dayweek, five_yr_interval, age_cat, Gender) %>% 
+#   summarise(count=n()) %>% 
+#   mutate(five_yr_ave = count/5) %>% 
+#   ggplot(aes(x=Dayweek, y=five_yr_ave,  group=five_yr_interval, colour=five_yr_interval)) +
+#   geom_line() +
+#   ylab('Number of Deaths') +
+#   xlab('Day of Week') +
+#   scale_x_discrete(labels = c('Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun')) +
+#   labs(colour="Five-Year Interval") +
+#   scale_colour_colorblind() +
+#   facet_grid(age_cat~Gender) +
+#   ggtitle('Number of Deaths by Day of the Week') +
+#   theme(plot.title = element_text(face='bold', hjust = 0.5, vjust = 0.5)) 
+# plot(day_p) # the peak of weekend deaths is dominated by the young men
+# 
 ```
 
-```{r fig7, echo=F, fig.width=7, fig.height=6, fig.cap="\\label{fig:fig7}The number of deaths in by hour of the day for each five-year interval for each age group and gender."}
+```{r fig7, echo=F, cache = TRUE, fig.cap="\\label{fig:fig7}The number of deaths in by hour of the day for each five-year interval for each age group and gender."}
 # Fig 6
 road_data$hour_int = as.integer(road_data$time_of_day)  
 # 12 pm to 11am for plotting
@@ -455,9 +456,10 @@ hour_p = road_data %>%
   ggtitle('Number of Deaths by Hour of the Day') +
   theme(plot.title = element_text(face='bold', hjust = 0.5, vjust = 0.5)) 
 plot(hour_p)  # big peaks ~midnight for males 17-40, lesser so for females
+# the trend looks similar over time - collapse across time invervals
 ```
 
-```{r fig8, echo=F, fig.width=7, fig.height=6, fig.cap="\\label{fig:fig8}The number of deaths in each hour of the day for each day of the week for each five-year interval for each age group and gender."}
+```{r fig8, echo=F, fig.cap="\\label{fig:fig8}The number of deaths in each hour of the day for each day of the week for each five-year interval for each age group and gender."}
 # fig 7
 hour_day_p = road_data %>% 
   group_by(hour_int, Dayweek, age_cat, Gender) %>% 
