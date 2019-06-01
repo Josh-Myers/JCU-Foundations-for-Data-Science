@@ -149,7 +149,7 @@ Lab_P_Stratified_Balanced = Lab_PB %>%
 write.table(Lab_P_Stratified_Balanced, file = "Lab_Pol_Out.csv", append = FALSE, quote = TRUE, sep = ",",
             eol = "\n", na = "NA", dec = ".", row.names = FALSE, col.names = TRUE, qmethod = c("escape", "double"), fileEncoding = "")
 
-  
+
 
 
 
