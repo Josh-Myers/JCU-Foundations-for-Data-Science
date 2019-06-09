@@ -295,49 +295,51 @@ age_p = ggplot(road_data, aes(x=Year, colour=age_cat, linetype=Gender)) +
 age_p # young men dominate the numbers - seem overrepresented - check against population stats for each age group - improving, but still highest 
 ggsave('age_sex_year.tiff', age_p, width = 6, height = 4, dpi = 300, units='in')
 
-# proportion of population each age in 2016: https://profile.id.com.au/australia/five-year-age-groups
-zero_to_4 = 0.06
-five_to_9 = 0.06
-ten_to_14 = 0.06
-fifteen_to_19 = 0.06
-twenty_to_24 = 0.07
-twenty5_to_29 = 0.07
-thirty_to_34 = 0.07
-thirty5_to_39 = 0.07
-forty_to_44 = 0.07
-forty5_to_49 = 0.07
-fifty_to_54 = 0.07
-fifty5_to_59 = 0.06
-sixty_to_64 = 0.06
-sixty5_to_69 = 0.05
-seventy_to_74 = 0.04
-seventy5_to79 = 0.03
-eighty_to_84 = 0.02
-eighty5_and_over = 0.02
+# proportion of population each age in 2018: https://www.abs.gov.au/AUSSTATS/abs@.nsf/DetailsPage/3101.0Jun%202018?OpenDocument
+age_2018 = read_excel('data/pop_2018.xls', sheet = 7, skip = 4)
+males_2018 = age_2018[2:23, c(1,10)]
+females_2018 = age_2018[25:46, c(1,10)]
+total_2018 = age_2018[48:69, c(1,10)]
+colnames(males_2018) = c("age_group", "Males")
+colnames(females_2018) = c("age_group", "Females")
+colnames(total_2018) = c("age_group", "Total")
+age_2018 = cbind.data.frame(males_2018, females_2018, total_2018)
+age_2018 = age_2018[,c(1,2,4,6)]
+age_2018 = age_2018 %>% 
+  mutate(prop_male = Males/Total, 
+         prop_female = Females/Total)
+
+total = age_2018[22,4]
+age_2018 = age_2018 %>% 
+  mutate(prop_total = Total/total)
 
 # so 15 to 39 
-prop_twenty_to_39_male = (twenty_to_24 + twenty5_to_29 + thirty_to_34 + thirty5_to_39)/2
-# 14% of population 20 to 39 male in 2016
-# (males are approximately 50% of population in this age group)
-# https://www.abs.gov.au/ausstats/abs@.nsf/0/1CD2B1952AFC5E7ACA257298000F2E76?OpenDocument
+
+prop_male_20_to_39 = age_2018 %>% 
+  filter(age_group %in% c("20–24",  "25–29", "30–34", "35–39")) %>% 
+  mutate(prop_male_total = prop_total*prop_male) %>% 
+  summarise(prop_male = sum(prop_male_total)) 
+# so 14% of population aged 20 to 39 in 2018 were males
+         
 # but accounted for what proportion of deaths?
 twenty_to_39_deaths = road_data %>% 
-  filter(Year==2016) %>% 
+  filter(Year==2018) %>% 
   group_by(Age, Gender) %>% 
   tally() 
 
-total_deaths_2016 = twenty_to_39_deaths %>% 
+total_deaths_2018 = twenty_to_39_deaths %>% 
   summarise(total=sum(n)) %>% 
-  summarise(total=sum(total)) # 1293 deaths in 2016
+  summarise(total=sum(total)) # 1141 deaths in 2018
 
 age_names = c('0 to 19', '20 to 39', '>=40' )
-age_deaths_2016 = twenty_to_39_deaths %>% 
+age_deaths_2018 = twenty_to_39_deaths %>% 
   mutate(Age_20_39 = cut(Age, breaks = c(-Inf, 19, 39, Inf), labels = age_names)) %>% 
   group_by(Age_20_39, Gender) %>% 
   tally()
-twenty_to_39_male_deaths_2016 = filter(age_deaths_2016, Age_20_39=='20 to 39', Gender=='Male') 
-# 364 deaths male (110 female)
-Prop_male_deaths_2016 = twenty_to_39_male_deaths_2016$n/total_deaths_2016$total # 28% of deaths, but only 14% of population
+twenty_to_39_male_deaths_2018 = filter(age_deaths_2018, Age_20_39=='20 to 39', Gender=='Male') 
+# 319 deaths male 
+Prop_male_deaths_2018 = twenty_to_39_male_deaths_2018$n/total_deaths_2018$total 
+# Males in this age group account for 28% of deaths, but only 14% of population
 
 # month~age~gender faceted by 1/2 decades
 # mth_p = road_data %>%
