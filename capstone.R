@@ -217,8 +217,53 @@ age_p = ggplot(road_data, aes(x=Year, colour=age_cat, linetype=Gender)) +
 age_p # young men dominate the numbers - seem overrepresented - check against population stats for each age group - improving, but still highest 
 ggsave('age_sex_year.tiff', age_p, width = 6, height = 4, dpi = 300, units='in')
 
+# 5. Proportion of young males----
+# proportion of population each age in 2018: https://www.abs.gov.au/AUSSTATS/abs@.nsf/DetailsPage/3101.0Jun%202018?OpenDocument
+age_2018 = read_excel('data/pop_2018.xls', sheet = 7, skip = 4)
+males_2018 = age_2018[2:23, c(1,10)]
+females_2018 = age_2018[25:46, c(1,10)]
+total_2018 = age_2018[48:69, c(1,10)]
+colnames(males_2018) = c("age_group", "Males")
+colnames(females_2018) = c("age_group", "Females")
+colnames(total_2018) = c("age_group", "Total")
+age_2018 = cbind.data.frame(males_2018, females_2018, total_2018)
+age_2018 = age_2018[,c(1,2,4,6)]
+age_2018 = age_2018 %>% 
+  mutate(prop_male = Males/Total, 
+         prop_female = Females/Total)
 
-# 5. Deaths by State per 100,000----
+total = age_2018[22,4]
+age_2018 = age_2018 %>% 
+  mutate(prop_total = Total/total)
+
+# so 20 to 39 
+prop_male_20_to_39 = age_2018 %>% 
+  filter(age_group %in% c("20–24",  "25–29", "30–34", "35–39")) %>% 
+  mutate(prop_male_total = prop_total*prop_male) %>% 
+  summarise(prop_male = sum(prop_male_total)) 
+# so 14% of population aged 20 to 39 in 2018 were males
+
+# but accounted for what proportion of deaths?
+twenty_to_39_deaths = road_data %>% 
+  filter(Year==2018) %>% 
+  group_by(Age, Gender) %>% 
+  tally() 
+
+total_deaths_2018 = twenty_to_39_deaths %>% 
+  summarise(total=sum(n)) %>% 
+  summarise(total=sum(total)) # 1141 deaths in 2018
+
+age_names = c('0 to 19', '20 to 39', '>=40' )
+age_deaths_2018 = twenty_to_39_deaths %>% 
+  mutate(Age_20_39 = cut(Age, breaks = c(-Inf, 19, 39, Inf), labels = age_names)) %>% 
+  group_by(Age_20_39, Gender) %>% 
+  tally()
+twenty_to_39_male_deaths_2018 = filter(age_deaths_2018, Age_20_39=='20 to 39', Gender=='Male') 
+# 319 deaths male 
+Prop_male_deaths_2018 = twenty_to_39_male_deaths_2018$n/total_deaths_2018$total 
+# Males in this age group account for 28% of deaths, but only 14% of population
+
+# 6. Deaths by State per 100,000----
 deaths_by_year_state = road_data %>% 
   group_by(State, Year, age_cat, Gender) %>% 
   tally(name = 'Deaths') 
@@ -263,7 +308,7 @@ prop_p_100k_sex_age = ggplot(death_pop_states, aes(x=Year, y=death_prop_per_100k
 prop_p_100k_sex_age # NT young people especially males are overrepreseted
 ggsave('state_age_sex.tiff', prop_p_100k_sex_age, width = 7, height = 7, dpi = 300, units='in')
 
-# 6. Time of day
+# 7. Time of day----
 road_data$hour_int = as.integer(road_data$time_of_day)  
 # 12 pm to 11am for plotting
 road_data$hour_int = factor(road_data$hour_int, levels = c(0:23)) 
@@ -288,51 +333,23 @@ hour_day_p = road_data %>%
 hour_day_p  # big peaks ~midnight for males 17-40, lesser so for females
 ggsave('hour_day_age.tiff', hour_day_p, width = 7, height = 4, dpi = 300, units='in')
 
-# 7. Proportion of young males----
-# proportion of population each age in 2018: https://www.abs.gov.au/AUSSTATS/abs@.nsf/DetailsPage/3101.0Jun%202018?OpenDocument
-age_2018 = read_excel('data/pop_2018.xls', sheet = 7, skip = 4)
-males_2018 = age_2018[2:23, c(1,10)]
-females_2018 = age_2018[25:46, c(1,10)]
-total_2018 = age_2018[48:69, c(1,10)]
-colnames(males_2018) = c("age_group", "Males")
-colnames(females_2018) = c("age_group", "Females")
-colnames(total_2018) = c("age_group", "Total")
-age_2018 = cbind.data.frame(males_2018, females_2018, total_2018)
-age_2018 = age_2018[,c(1,2,4,6)]
-age_2018 = age_2018 %>% 
-  mutate(prop_male = Males/Total, 
-         prop_female = Females/Total)
-
-total = age_2018[22,4]
-age_2018 = age_2018 %>% 
-  mutate(prop_total = Total/total)
-
-# so 20 to 39 
-prop_male_20_to_39 = age_2018 %>% 
-  filter(age_group %in% c("20–24",  "25–29", "30–34", "35–39")) %>% 
-  mutate(prop_male_total = prop_total*prop_male) %>% 
-  summarise(prop_male = sum(prop_male_total)) 
-# so 14% of population aged 20 to 39 in 2018 were males
-         
-# but accounted for what proportion of deaths?
-twenty_to_39_deaths = road_data %>% 
-  filter(Year==2018) %>% 
-  group_by(Age, Gender) %>% 
-  tally() 
-
-total_deaths_2018 = twenty_to_39_deaths %>% 
-  summarise(total=sum(n)) %>% 
-  summarise(total=sum(total)) # 1141 deaths in 2018
-
-age_names = c('0 to 19', '20 to 39', '>=40' )
-age_deaths_2018 = twenty_to_39_deaths %>% 
-  mutate(Age_20_39 = cut(Age, breaks = c(-Inf, 19, 39, Inf), labels = age_names)) %>% 
-  group_by(Age_20_39, Gender) %>% 
-  tally()
-twenty_to_39_male_deaths_2018 = filter(age_deaths_2018, Age_20_39=='20 to 39', Gender=='Male') 
-# 319 deaths male 
-Prop_male_deaths_2018 = twenty_to_39_male_deaths_2018$n/total_deaths_2018$total 
-# Males in this age group account for 28% of deaths, but only 14% of population
+# animated by year
+library(gganimate)
+year_hour_day_p = road_data %>% 
+  group_by(five_yr_interval, hour_int, Dayweek, age_cat, Gender) %>% 
+  summarise(count=n()) %>% 
+  ggplot(aes(x=hour_int, y=count, group=age_cat, colour=age_cat)) +
+  geom_line(alpha=0.5) +
+  scale_x_discrete(breaks = c(0,6,12,18), labels = c('0', '6', '12', '18')) +
+  xlab('Time (24 hour)') +
+  geom_smooth(se=F, size=0.5, method = 'loess') +
+  labs(colour='Age') +
+  ylab('Number of Deaths') +
+  scale_color_colorblind() +
+  facet_grid(rows=vars(Gender), cols = vars(Dayweek)) +
+  ggtitle("Year: {frame_time}") +
+  transition_time(as.numeric(five_yr_interval))
+animate(year_hour_day_p, width = 450, height = 450) 
 
 # 8. road user----
 summary(road_data$road_user)
@@ -346,16 +363,13 @@ road_data$User = factor(road_data$User, levels = c('Car/Truck', 'Motorcycle', 'P
 
 # what proportion of deaths in 2018 were MC?
 # remove pedestrian and cyclist
-data_2018 = road_data %>% 
-  filter(Year==2018, User != 'Pedestrian', User != 'Cyclist') 
+users_2018 = road_data %>% 
+  filter(Year==2018) %>% 
+  group_by(User) %>% 
+  tally()
 
-mc_2018 = summary(as.factor(data_2018$User))
-car_truck_2018 = mc_2018[1]
-mc_2018 = mc_2018[2]
-total_2018 = car_truck_2018 + mc_2018
-
-prop_car_truck_deaths_2018 = car_truck_2018/total_2018
-mc_prop_2018 = mc_2018/total_2018 # Only 5% of vehicles on the road are mc, but they account for 20% of deaths 
+mc_prop_2018 = users_2018$n[2]/sum(users_2018$n)
+# Only 5% of vehicles on the road are mc, but they account for 17% of deaths 
 
 # proportion of trucks involved in crash compared with census 2018
 # bus, heavy rigid, articulated trucks
@@ -391,3 +405,15 @@ props_2018_p = props_2018 %>%
   #theme(plot.title = element_text(face='bold', hjust = 0.5, vjust = 0.5)) 
 props_2018_p
 ggsave('user_props_2018.tiff', props_2018_p, width = 5, height = 4, dpi = 300, units='in')
+
+# what proportion died in MC accidents are young men?
+mc_sex_age = road_data %>% 
+  filter(User == 'Motorcycle') 
+
+young_men_mc = mc_sex_age %>% 
+  filter(Gender == "Male", age_cat == '17-40 years') 
+
+prop_young_men_mc = dim(young_men_mc)[1] / dim(mc_sex_age)[1]
+
+
+
