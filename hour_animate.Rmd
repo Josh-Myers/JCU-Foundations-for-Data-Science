@@ -1,4 +1,16 @@
-# FDS capstone project
+---
+title: "Number of deaths each Hour of the Day by Age Group, Gender, and Day of the Week, animated by Five-Year Interval"
+author: "Josh Myers"
+date: "17/06/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = F)
+```
+
+
+```{r, echo=FALSE, cache=TRUE, include=F}
 library(tidyverse)
 library(ggthemes)
 library(lubridate)
@@ -8,8 +20,6 @@ library(mice)
 library(readxl)
 theme_set(theme_minimal())
 
-# 1. Import and impute road death data----
-# from here: https://www.bitre.gov.au/statistics/safety/fatal_road_crash_database.aspx
 path = 'https://data.gov.au/data/dataset/5b530fb8-526e-4fbf-b0f6-aa24e84e4277/resource/fd646fdc-7788-4bea-a736-e4aeb0dd09a8/download/bitre_ardd_fatalities_apr_2019.csv'
 road_data = read.csv(path, header = T, na.strings = c("", -9, 'Other/-9'))
 # filter out 2019 data - not a complete year
@@ -27,29 +37,9 @@ road_data$Gender[road_data$Gender == 'Unspecified'] = NA
 road_data$Gender = droplevels(road_data$Gender)
 road_data$Gender = as.factor(road_data$Gender)
 road_data$Road.User = as.factor(road_data$Road.User)
-describe(road_data)
-# state 0 missing
-# month 0 missing
-# year 0 missing
-# day 0 missing
-# time 40 missing 
-# crash type 0 missing 
-# bus involvement 0 missing
-# heavy rigid truck involvement many missing (20493) - but I only use 2018 data
 truck_2018 = road_data %>% 
   filter(Year==2018) %>% 
   summarise(count = sum(is.na(Heavy.Rigid.Truck.Involvement)))
-truck_2018 # none missing for 2018
-# articultated truck involevelment 0 missing
-# speed limit 1340 missing
-# road user 77 missing
-# gender 22 missing
-# age 84 missing
-# national remoteness area 45567 missing 
-# national LGA Name 2017 45553 missing 
-# national road type - 45564 missing 
-# Xmas period 0 missing
-# Easter period 0 missing
 
 # how many observations had missing time, road_user, gender, age
 missing_data = road_data %>% 
@@ -84,22 +74,13 @@ meth[c('Age')]="pmm"
 meth[c('time_of_day')]="pmm"
 
 imputed = mice(road_data, method=meth, predictorMatrix=predM, m=1)
-densityplot(imputed) # can I somehow plot the categorical variables? see https://web.maths.unsw.edu.au/~dwarton/missingDataLab.html
-plot(imputed)
-# check imputed values
-summary(imputed$imp$road_user)
-summary(imputed$imp$Gender)
-summary(imputed$imp$Age)
-summary(imputed$imp$time_of_day)
-
 road_data <- complete(imputed)
-sapply(road_data, function(x) sum(is.na(x)))
 
 # make age discrete
 # 0-16, 17-40, 41-60, 60+
 road_data$Gender = factor(road_data$Gender, levels = c('Male', 'Female'))
 road_data = road_data %>% 
-  mutate(age_cat = cut(Age, breaks = c(-Inf, 16, 40, 60, Inf), labels = c('0-16 years', '17-40 years', '41-60 years', '>60 years'))) 
+  mutate(age_cat = cut(Age, breaks = c(-Inf, 16, 40, 60, Inf), labels = c('0-16', '17-40', '41-60', '>60'))) 
 
 # create 5-year intervals as factor
 five_years = c('1989 to 1993', '1994 to 1998', '1999 to 2003', '2004 to 2008', '2009 to 2013', '2014 to 2018')
@@ -107,7 +88,6 @@ road_data = road_data %>%
   mutate(five_yr_interval = cut(Year, breaks = c(-Inf, 1993, 1998, 2003, 2008, 2013, Inf),
                                 labels=five_years)) 
 
-# 2. Import state population data----
 # from here: https://www.abs.gov.au/AUSSTATS/abs@.nsf/DetailsPage/3105.0.65.0012016?OpenDocument
 state_pop = read_excel('data/historical_state_pop.xls', sheet=4, skip = 4)
 # the order is nsw, vic, qld, sa, wa, tas, nt, act  
@@ -134,7 +114,6 @@ state_pop_17_18 = rbind.data.frame(nsw, vic, qld, sa, wa, tas, nt, act, total)
 names(state_pop_17_18) = c('2017', '2018')
 state_pop = cbind(state_pop, state_pop_17_18)
 
-# 3. Import motorvehicle census data
 # from 2018 mv census https://www.abs.gov.au/AUSSTATS/abs@.nsf/Lookup/9309.0Main+Features131%20Jan%202018?OpenDocument
 mv_names = c('Passenger', 'CamperVan', 'LightCommercial', 'LightRigid', 'HeavyRigid', 'Articulated', 'Non-Freight', 'Bus', 'Motorcycle', 'Total')
 mv_census = c(14330432, 66594, 3187131, 158032, 346966, 100694, 24165, 98565, 860700,  19173279)    
@@ -153,73 +132,6 @@ articulated = mv_census[6]
 articulated_prop = articulated/total
 prop_pop = rbind(mc_prop, bus_prop, heavy_rigid_prop, articulated_prop)
 
-# 4. Exploratory distribution plots
-# summary statistics for bus, heavy_rigid and articulated involve
-b = summary(road_data$bus_involve)
-r = summary(road_data$heavy_rigid_involve)
-a = summary(road_data$articulated_involve)
-
-# plots showing the variation in Age, Gender, State, Year, Month, Dayweek, time_of_day, road_user, bus_involve, heavy_rigid_involve, 
-age_dist = ggplot(road_data, aes(Age)) +
-  geom_histogram(binwidth = 5) +
-  ylab('') + 
-  xlab('Age (years)')
-
-sex_p = ggplot(road_data, aes(Gender)) +
-  geom_bar() +
-  ylab('') 
-
-state_p = ggplot(road_data, aes(State)) +
-  geom_bar() + # interesting NT has more than act or tas even though lowest population (ordered by population)
-  ylab('') 
-
-year_p = ggplot(road_data, aes(Year)) +
-  geom_histogram(binwidth = 1) + 
-  scale_x_continuous(breaks = c(1980, 1985, 1990, 1995, 2000, 2005, 2010, 2015), labels = c(1980, 1985, 1990, 1995, 2000, 2005, 2010, 2015)) +
-  ylab('')
-
-month_p = ggplot(road_data, aes(as.factor(Month))) +
-  geom_bar() +
-  ylab('') +
-  xlab('Month') +
-  scale_x_discrete(labels = 'month.abb')
-
-day_p = ggplot(road_data, aes(Dayweek)) +
-  geom_bar() +
-  scale_x_discrete(labels=c("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")) +
-  ylab("") +
-  scale_x_continuous(breaks = c(0, 6, 12, 18))
-  xlab("Day of the Week") 
-
-time_p = ggplot(road_data, aes(time_of_day)) +
-  geom_histogram(binwidth = 1) +
-  ylab("") +
-  xlab("Hour of the Day (24 hour)")
-
-road_data$road_user = fct_infreq(road_data$road_user) 
-user_p =  ggplot(road_data, aes(road_user)) +
-  geom_bar() +
-  ylab("") +
-  xlab("Type of Road User") + 
-  scale_x_discrete(labels=c("Driver", "Passenger", "Pedestrian", "MC rider", "Cyclist", "MC passenger")) +
-  coord_flip()
-
-exploratory_ps = plot_grid(year_p, month_p, day_p, time_p, age_dist, sex_p, state_p, user_p, ncol=4, labels=c(LETTERS[1:8]))
-ggsave('exploratory.tiff', exploratory_ps, width = 14, height = 5, dpi = 300, units='in')
-
-# 4. Age, gender plot----
-age_p = ggplot(road_data, aes(x=Year, colour=age_cat, linetype=Gender)) +
-  geom_line(stat = 'count') +
-  scale_colour_colorblind() +
-  scale_x_continuous(breaks = c(1990, 1995, 2000, 2005, 2010, 2015), labels = c('1990', '1995', '2000', '2005', '2010', '2015')) +
-  labs(colour='Age Group') +
-  ylab('Number of Deaths') 
-#ggtitle('Number of Deaths Each Year by Age and Gender') +
-#theme(plot.title = element_text(face='bold', hjust = 0.5, vjust = 0.5)) 
-age_p # young men dominate the numbers - seem overrepresented - check against population stats for each age group - improving, but still highest 
-ggsave('age_sex_year.tiff', age_p, width = 6, height = 4, dpi = 300, units='in')
-
-# 5. Proportion of young males----
 # proportion of population each age in 2018: https://www.abs.gov.au/AUSSTATS/abs@.nsf/DetailsPage/3101.0Jun%202018?OpenDocument
 age_2018 = read_excel('data/pop_2018.xls', sheet = 7, skip = 4)
 males_2018 = age_2018[2:23, c(1,10)]
@@ -265,7 +177,6 @@ twenty_to_39_male_deaths_2018 = filter(age_deaths_2018, Age_20_39=='20 to 39', G
 Prop_male_deaths_2018 = twenty_to_39_male_deaths_2018$n/total_deaths_2018$total 
 # Males in this age group account for 28% of deaths, but only 14% of population
 
-# 6. Deaths by State per 100,000----
 deaths_by_year_state = road_data %>% 
   group_by(State, Year, age_cat, Gender) %>% 
   tally(name = 'Deaths') 
@@ -297,46 +208,35 @@ death_pop_states = death_pop_states %>%
   mutate(death_proportion = Deaths / Population) %>% 
   mutate(death_prop_per_100k = death_proportion * 100000)
 
-prop_p_100k_sex_age = ggplot(death_pop_states, aes(x=Year, y=death_prop_per_100k, colour=State)) + 
-  geom_line(alpha=0.5) +
-  geom_smooth(method = 'loess', se=F, size=0.5) +
-  ylab('Number of Deaths per 100,000') +
-  scale_x_continuous(breaks = c(1990, 1995, 2000, 2005, 2010, 2015), labels = c('1990', '1995', '2000', '2005', '2010', '2015')) +
-  scale_colour_colorblind() +
-  #ggtitle('Number of Deaths per 100,000 people (1989 to 2018)') +
-  #theme(plot.title = element_text(face='bold', hjust = 0.5, vjust = 0.5)) +
-  scale_y_log10() +
-  facet_grid(age_cat~Gender)
-prop_p_100k_sex_age # NT young people especially males are overrepreseted
-ggsave('state_age_sex.tiff', prop_p_100k_sex_age, width = 7, height = 7, dpi = 300, units='in')
-
-# 7. Time of day----
 road_data$hour_int = as.integer(road_data$time_of_day)  
 # 12 pm to 11am for plotting
 road_data$hour_int = factor(road_data$hour_int, levels = c(0:23)) 
 summary(road_data$hour_int)
 
 # hour by day for 2014 to 2018
-hour_day_p = road_data %>% 
-  filter(five_yr_interval == "2014 to 2018") %>% 
-  group_by(hour_int, Dayweek, age_cat, Gender) %>% 
-  summarise(count=n()) %>% 
-  ggplot(aes(x=hour_int, y=count, group=age_cat, colour=age_cat)) +
-  geom_line(alpha=0.5) +
-  scale_x_discrete(breaks = c(0,6,12,18), labels = c('0', '6', '12', '18')) +
-  xlab('Time (24 hour)') +
-  geom_smooth(se=F, size=0.5, method = 'loess') +
-  labs(colour='Age') +
-  ylab('Number of Deaths') +
-  scale_color_colorblind() +
-  facet_grid(rows=vars(Gender), cols = vars(Dayweek)) 
-#ggtitle('Number of Deaths by Day and Time') +
-#theme(plot.title = element_text(face='bold', hjust = 0.5, vjust = 0.5)) 
-hour_day_p  # big peaks ~midnight for males 17-40, lesser so for females
-ggsave('hour_day_age.tiff', hour_day_p, width = 7, height = 4, dpi = 300, units='in')
+# hour_day_p = road_data %>% 
+#   filter(five_yr_interval == "2014 to 2018") %>% 
+#   group_by(hour_int, Dayweek, age_cat, Gender) %>% 
+#   summarise(count=n()) %>% 
+#   ggplot(aes(x=hour_int, y=count, group=age_cat, colour=age_cat)) +
+#   geom_line(alpha=0.5) +
+#   scale_x_discrete(breaks = c(0,6,12,18), labels = c('0', '6', '12', '18')) +
+#   xlab('Time (24 hour)') +
+#   geom_smooth(se=F, size=0.5, method = 'loess') +
+#   labs(colour='Age') +
+#   ylab('Number of Deaths') +
+#   scale_color_colorblind() +
+#   facet_grid(rows=vars(Gender), cols = vars(Dayweek)) 
+# #ggtitle('Number of Deaths by Day and Time') +
+# #theme(plot.title = element_text(face='bold', hjust = 0.5, vjust = 0.5)) 
+# hour_day_p  # big peaks ~midnight for males 17-40, lesser so for females
+# ggsave('hour_day_age.tiff', hour_day_p, width = 7, height = 4, dpi = 300, units='in')
+```
 
-# animated by 5-year interval
+```{r, echo=FALSE, cache=TRUE}
+# animated by year
 library(gganimate)
+theme_set(theme_minimal())
 year_hour_day_p = road_data %>% 
   group_by(five_yr_interval, hour_int, Dayweek, age_cat, Gender) %>% 
   summarise(count=n()) %>% 
@@ -345,80 +245,15 @@ year_hour_day_p = road_data %>%
   scale_x_discrete(breaks = c(0,6,12,18), labels = c('0', '6', '12', '18')) +
   xlab('Time (24 hour)') +
   geom_smooth(se=F, size=0.5, method = 'loess') +
-  labs(colour='Age') +
+  labs(colour='Age (years)') +
   ylab('Number of Deaths') +
   scale_color_colorblind() +
   facet_grid(rows=vars(Gender), cols = vars(Dayweek)) +
   ggtitle("Year: {closest_state}") +
-  transition_states(as.character(five_yr_interval),
-                    transition_length = 2,
-                    state_length = 1)
-animate(year_hour_day_p, width = 900, height = 450) 
+  transition_states(as.character(five_yr_interval), transition_length = 2, state_length = 1)
+animate(year_hour_day_p) 
 
-# 8. road user----
-summary(road_data$road_user)
-
-road_data = road_data %>% 
-  mutate(User = ifelse(road_user=='Motorcycle pillion passenger'|road_user=='Motorcycle rider', 'Motorcycle',
-                       ifelse(road_user=='Driver'|road_user=='Passenger', 'Car/Truck', 
-                              ifelse(road_user=='Pedestrian', 'Pedestrian', 
-                                     ifelse(road_user=='Pedal cyclist', 'Cyclist', NA))))) 
-road_data$User = factor(road_data$User, levels = c('Car/Truck', 'Motorcycle', 'Pedestrian', 'Cyclist'))
-
-# what proportion of deaths in 2018 were MC?
-# remove pedestrian and cyclist
-users_2018 = road_data %>% 
-  filter(Year==2018) %>% 
-  group_by(User) %>% 
-  tally()
-
-mc_prop_2018 = users_2018$n[2]/sum(users_2018$n)
-# Only 5% of vehicles on the road are mc, but they account for 17% of deaths 
-
-# proportion of trucks involved in crash compared with census 2018
-# bus, heavy rigid, articulated trucks
-# are any of these overrepresented?
-df_2018 = road_data %>% 
-  filter(Year==2018) 
-bus_deaths_2018 = summary(as.factor(df_2018$bus_involve))[2]
-total = nrow(df_2018)
-bus_prop_2018 = bus_deaths_2018/total # 0.02 of deaths, but 0.005 of vehicles on road # not heavily overrepresented (4 times as many) - and driving a lot of the time
-
-heavy_rigid_deaths_2018 = summary(as.factor(df_2018$heavy_rigid_involve))[2]
-heavy_rigid_prop_2018 = heavy_rigid_deaths_2018 / total # 0.06 of deaths (6%) and account for 0.018 (~2%) of vehicles (overrepresented 3 times as many)
-
-articulated_deaths_2018 = summary(as.factor(df_2018$articulated_involve))[2]
-articulated_prop_2018 = articulated_deaths_2018 / total # 0.079 of deaths (~8%) and account for 0.005 of vehicles (heavily overrepresented 16 times as many)
-
-deaths_2018 = c(mc_prop_2018, bus_prop_2018, heavy_rigid_prop_2018, articulated_prop_2018)
-props_2018 = cbind.data.frame(prop_pop, deaths_2018)
-names(props_2018) = c('Population', 'Deaths')
-props_2018$user = c('Motorcycle', 'Bus', 'Heavy Rigid Truck', 'Articulated Truck')
-
-# need to make long
-props_2018_p = props_2018 %>% 
-  gather('Group', 'Proportion', 1:2) %>% 
-  mutate(Group = factor(Group, levels = c('Population', 'Deaths'))) %>% 
-  ggplot(aes(x=factor(user, levels=c('Bus', 'Heavy Rigid Truck', 'Articulated Truck', 'Motorcycle')), y=Proportion, colour=Group, fill=Group)) +
-  geom_bar(stat='identity', position = 'dodge') +
-  scale_color_manual(values=c("#E69F00", "#000000")) +
-  scale_fill_manual(values=c("#E69F00", "#000000")) +
-  scale_x_discrete(labels=c('Bus', 'Heavy Rigid', 'Articulated', 'Motorcycle')) +
-  #ggtitle('Proportion of Vehicle Types Involved in Fatatities \n Compared with Overall Population') +
-  xlab('Type of Vehicle') 
-  #theme(plot.title = element_text(face='bold', hjust = 0.5, vjust = 0.5)) 
-props_2018_p
-ggsave('user_props_2018.tiff', props_2018_p, width = 5, height = 4, dpi = 300, units='in')
-
-# what proportion died in MC accidents are young men?
-mc_sex_age = road_data %>% 
-  filter(User == 'Motorcycle') 
-
-young_men_mc = mc_sex_age %>% 
-  filter(Gender == "Male", age_cat == '17-40 years') 
-
-prop_young_men_mc = dim(young_men_mc)[1] / dim(mc_sex_age)[1]
-
+```
 
 
 

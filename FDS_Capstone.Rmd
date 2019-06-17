@@ -11,27 +11,6 @@ fig_caption: yes
 knitr::opts_chunk$set(echo = F)
 ```
 
-# Abstract
-asdf
-
-# Introduction
-Road deaths bla bla...
-Aim is to investigate road fatality data in Australia - trends over time, state, age, gender road user. 
-This report uses the road fatality data (ref), supplemented with data from A, b, c (state pop, road user, etc)
-Need to say it is structured data set
-
-# Data
-The Australian Road Deaths Database (ARDD) is published each month by the Bureau of Infrastructure, Transport and Regional Economics. This report uses the "Fatalities" dataset, which is a record of the number of fatalities resulting from vehicle crashes reported by the police to the State and Territory road safety authorities. This report uses the "ARDD Fatalities April 2019" data, which contains data from 50,160 road deaths that occured on Australian roads between January 1989 to May 2019. Each observation represents a death and includes a crash ID, state, month, year, day of the week, time, crash type (e.g., single, multiple, pedestrian), whether a bus, heavy rigid truck, or articulated truck was involved in the fatality, the speed limit, the type of road user killed (e.g., driver, passenger, pedestrian), gender, age, three variables relating to where the accident occured (e.g., whether it was a remote area, the name of the area), the type of road (e.g., local road or highway), and whether the accident occured during the Easter or Christmas period.
-
-I used some other data sources to supplement the ARDD dataset for this analysis. State population over time data from the Australian Bureau of Statistics Australian Historical Population Statistics, 2019, Table 1.3: Population and components of change, for the states and territories, form 1971 to 2016 which was downloaded as an Excel file, and imported using the `read_excel` function from the `readxl` package. Population projections for 2017 and 2018 were obtained  for 2017, 2018 , Population Projections, Australia, 2017 (base) – 2066 downloaded from (https://www.abs.gov.au/AUSSTATS/abs@.nsf/Lookup/3222.0Main+Features12017%20(base)%20-%202066?OpenDocument) again, as an Excel file, and imported using read_excel. I extrated the population data for each state and the total population from 1989 to 2016 from the historical Australian Historical Population dataset, and added to this the projected populations for each state and the nation from the Population Projections data. The dataset with the state popualation data from 1989 to 2018 is referred to as the "population dataset" in this report. 
-
-The numbers of vehicle types in the general population was obtained from the Australian Bureau of Statistics Motorvehicle Census, 2018 (https://www.abs.gov.au/AUSSTATS/abs@.nsf/DetailsPage/9309.031%20Jan%202018?OpenDocument), again downloaded as Excel file. Data from Table 1 was used for 2018, which reports the number of various different types of vehicles for the 19.2 million registered motor vehicles in Australia. This dataset is referred to as the "motorvehicle dataset" in this report. 
-
-proportion of population each age in 2016: https://profile.id.com.au/australia/five-year-age-groups - This is referred to as the "age dataset" in this report. 
-males are approximately 50% of population in this age group https://www.abs.gov.au/ausstats/abs@.nsf/0/1CD2B1952AFC5E7ACA257298000F2E76?OpenDocument. 
-
-These population-level data were used with the ARDD dataset to create proportions for various categories, in order to identify groups with higher risk of death, for example, by comparing the proportion of young men aged 20 to 39 who died in motorvehicle accidents in a given year with the proportion of young men that age in the general population. Exactly how these additional datasets were used in conjunction with the ARDD data is described in the Methods section. 
-
 ```{r, echo=FALSE, include=FALSE}
 library(tidyverse)
 library(ggthemes)
