@@ -1,5 +1,5 @@
 ---
-title: "Number of deaths by hour of the day for age group, gender, and day of the week, animated by five-year interval"
+title: "Number of deaths each hour by age group, gender, and day of the week, animated by five-year interval"
 author: "Josh Myers"
 date: "17/06/2019"
 output: html_document
@@ -252,7 +252,6 @@ year_hour_day_p = road_data %>%
   ggtitle("Year: {closest_state}") +
   transition_states(as.character(five_yr_interval), transition_length = 2, state_length = 1)
 animate(year_hour_day_p) 
-
 ```
 
 
