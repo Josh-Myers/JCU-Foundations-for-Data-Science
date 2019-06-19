@@ -1,5 +1,5 @@
 ---
-title: "Number of deaths each Hour of the Day by Age Group, Gender, and Day of the Week, animated by Five-Year Interval"
+title: "Number of deaths by hour of the day for age group, gender, and day of the week, animated by five-year interval"
 author: "Josh Myers"
 date: "17/06/2019"
 output: html_document

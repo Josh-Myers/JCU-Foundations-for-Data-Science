@@ -99,7 +99,7 @@ sapply(road_data, function(x) sum(is.na(x)))
 # 0-16, 17-40, 41-60, 60+
 road_data$Gender = factor(road_data$Gender, levels = c('Male', 'Female'))
 road_data = road_data %>% 
-  mutate(age_cat = cut(Age, breaks = c(-Inf, 16, 40, 60, Inf), labels = c('0-16 years', '17-40 years', '41-60 years', '>60 years'))) 
+  mutate(age_cat = cut(Age, breaks = c(-Inf, 16, 40, 60, Inf), labels = c('0-16', '17-40', '41-60', '>60'))) 
 
 # create 5-year intervals as factor
 five_years = c('1989 to 1993', '1994 to 1998', '1999 to 2003', '2004 to 2008', '2009 to 2013', '2014 to 2018')
@@ -326,7 +326,7 @@ hour_day_p = road_data %>%
   scale_x_discrete(breaks = c(0,6,12,18), labels = c('0', '6', '12', '18')) +
   xlab('Time (24 hour)') +
   geom_smooth(se=F, size=0.5, method = 'loess') +
-  labs(colour='Age') +
+  labs(colour='Age (years)') +
   ylab('Number of Deaths') +
   scale_color_colorblind() +
   facet_grid(rows=vars(Gender), cols = vars(Dayweek)) 
@@ -345,7 +345,7 @@ year_hour_day_p = road_data %>%
   scale_x_discrete(breaks = c(0,6,12,18), labels = c('0', '6', '12', '18')) +
   xlab('Time (24 hour)') +
   geom_smooth(se=F, size=0.5, method = 'loess') +
-  labs(colour='Age') +
+  labs(colour='Age (years)') +
   ylab('Number of Deaths') +
   scale_color_colorblind() +
   facet_grid(rows=vars(Gender), cols = vars(Dayweek)) +
@@ -415,7 +415,7 @@ mc_sex_age = road_data %>%
   filter(User == 'Motorcycle') 
 
 young_men_mc = mc_sex_age %>% 
-  filter(Gender == "Male", age_cat == '17-40 years') 
+  filter(Gender == "Male", age_cat == '17-40') 
 
 prop_young_men_mc = dim(young_men_mc)[1] / dim(mc_sex_age)[1]
 
