@@ -1,15 +1,21 @@
 ---
-title: 'Young men are dying to drive: Exploring road deaths in Australia'
+title: 'Young men are dying to drive'
+subtitle: 'Exploring road deaths in Australia'
 author: "Josh Myers"
 date: "27/06/2019"
-output: html_document
+output: 
+  html_document:
+    includes:
+      after_body: footer.html
+    css: style.css
+    code_folding: hide
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE, include=FALSE, cache = TRUE)
+knitr::opts_chunk$set(echo = TRUE, include=FALSE, cache = TRUE)
 ```
 
-# Abstract
+## Abstract
 Road accidents in Australia carry enormous social and economic impacts, with an estimated cost of almost $30 billion each year. The aim of this analysis was to explore road deaths in Australia to identify trends in the data, and groups that may be more at risk of dying in road accidents. Data on the number of road deaths in Australia since 1989 were obtained from the Australian Road Deaths Database, supplemented with data from the Australian motor vehicle census of 2018, and population estimates for each age group and state in Australia. The road deaths dataset was explored for trends visually, and in order to identify potentially over-represented groups, the proportion of certain groups who died in road accidents was compared with the proportion of that group in the Australian population. These calculations were done for young men, Northern Territorians, motorcycle users, and heavy vehicles. For example, the proportion of road deaths who were young men was compared with the proportion of young men in the general population of Australia. Results indicated that young men, Northern Territorians, and motorcycle users are over-represented in road deaths, and that around midnight on Friday and Saturday night is a particularly dangerous time for young men to be on the road. These findings could be used to inform public policy, for example, by targeting young male drivers in road safety campaigns aimed at reducing the road toll.
 
 # Introduction
@@ -28,7 +34,7 @@ The ARDD Fatalities dataset was downloaded from the Australian Government Open D
 This report analyses the data from January 1989 to December 2018. Data from 2019 were removed using dplyr‘s filter function because much of the present analysis compares the number of deaths each year. This analysis used the variables: state, month, year, day of the week, time of day, road user, gender, age, and bus, heavy rigid, and articulated truck involvement. Other variables were removed from the dataset using dplyr's select function. State, day of the week, gender, road user, and bus, heavy rigid, and articulated truck involvement were coded as unordered factors using base R’s factor function. Time of day was converted to a numeric variable indicating the hour of the day (in 24-hour time). The lubridate package was used to convert it into hour and minute format with the hm function, and then the hour was extracted with the hour function. Age, year and month were coded as numeric integers. The subsetted dataset had 11 variables providing information on 49,730 motor vehicle deaths from January 1989 to December 2018.
 State, year, month, day of the week, bus, and articulated truck involvement had no missing values. Time of day had 40 missing values, road user had 77, gender had 22, and age had 84 missing values. In total, there were 218 observations with missing data for at least one of these variables (<1% of the dataset). Single imputation was used to assign missing values for these variables using the mice function from the mice library. Age and hour of the day were imputed using predictive mean matching, gender with logistic regression imputation, and road user with polytomous regression imputation. All variables apart from the heavy vehicle involvement variables were used to predict the missing values. Heavy rigid truck involvement had 20,493 missing values, but this analysis only used data from 2018 for the heavy vehicle involvement variables, of which none were missing, so missing values did not need to be imputed for this variable. Table 1 describes the data representation of the variables in the subsetted dataset, the number of missing values, summary statistics prior to imputation for variables that had missing values, and a summary of the imputed values. I refer to the subsetted, imputed dataset as the "road deaths dataset" in this report. 
 
-```{r}
+```{r fig1, fig.align="left", fig.width=20, fig.height=7, fig.fullwidth=T, include=T, fig.cap="\\label{fig:fig1}Figure 1. Density plots for variables in the road deaths dataset, except for the heavy vehicle variables. The y-axis for all plots shows the count, except for plot H, for which count is the x-axis. A bin width of 1 was chosen for year and hour of the day, and 5 for age. The x-axis for state is ordered from the largest to smallest population. MC = motorcycle."}
 library(tidyverse)
 library(ggthemes)
 library(lubridate)
@@ -36,7 +42,7 @@ library(cowplot)
 library(mice)
 library(readxl)
 library(scales)
-theme_set(theme_minimal())
+library(gganimate)
 
 # Import road deaths data----
 path = 'https://data.gov.au/data/dataset/5b530fb8-526e-4fbf-b0f6-aa24e84e4277/resource/fd646fdc-7788-4bea-a736-e4aeb0dd09a8/download/bitre_ardd_fatalities_apr_2019.csv'
@@ -59,7 +65,6 @@ road_data$Road.User = as.factor(road_data$Road.User)
 truck_2018 = road_data %>% 
   filter(Year==2018) %>% 
   summarise(count = sum(is.na(Heavy.Rigid.Truck.Involvement)))
-truck_2018 # none missing for 2018
 
 # how many observations had missing time, road_user, gender, age
 missing_data = road_data %>% 
@@ -108,9 +113,7 @@ five_years = c('1989 to 1993', '1994 to 1998', '1999 to 2003', '2004 to 2008', '
 road_data = road_data %>% 
   mutate(five_yr_interval = cut(Year, breaks = c(-Inf, 1993, 1998, 2003, 2008, 2013, Inf),
                                 labels=five_years)) 
-```
 
-```{r}
 # Import state population data----
 # from here: https://www.abs.gov.au/AUSSTATS/abs@.nsf/DetailsPage/3105.0.65.0012016?OpenDocument
 state_pop = read_excel('data/historical_state_pop.xls', sheet=4, skip = 4)
@@ -156,11 +159,10 @@ heavy_rigid_prop = heavy_rigid/total
 articulated = mv_census[6]
 articulated_prop = articulated/total
 prop_pop = rbind(mc_prop, bus_prop, heavy_rigid_prop, articulated_prop)
-```
 
-```{r fig1, include=T, fig.cap="\\label{fig:fig1}Figure 1. Density plots for variables in the road deaths dataset, except for the heavy vehicle variables. The y-axis for all plots shows the count, except for plot H, for which count is the x-axis. A bin width of 1 was chosen for year and hour of the day, and 5 for age. The x-axis for state is ordered from the largest to smallest population. MC = motorcycle."}
 # Exploratory distribution plots
 # plots showing the variation in Age, Gender, State, Year, Month, Dayweek, time_of_day, road_user
+theme_set(theme_minimal())
 age_dist = ggplot(road_data, aes(Age)) +
   geom_histogram(binwidth = 5) +
   ylab('') + 
@@ -231,9 +233,203 @@ The code for the analysis is available online (https://github.com/Josh-Myers/JCU
 
 ## Results and Discussion
 The number of deaths each year for females and males in each age group is depicted in Figure 2. There has been a general decrease in number of deaths over time, especially for young men, and also females and children. The number of deaths for middle-aged men has remained fairly constant overtime, however, and although the numbers for older men decreased from around 1995, they have been increasing since 2010. The most striking feature of this plot is the number of young men who have died on Australian roads compared to other groups. To quantify the extent to which this group is over-represented, I calculated the proportion of deaths in 2018 who were males aged 20 to 39 in the road deaths dataset, and compared this with the proportion of males that age in the general population of Australia in 2018. Young men aged 20 to 39 accounted for 28% of deaths, but only 14% of the population of Australia in 2018 – twice as many as would be expected given the proportion in the general population. 
-The exploratory plots in Figure 1 (C & D) indicate that afternoons and weekends (Friday to Sunday) are the most dangerous times to drive. To further explore these relationships, I created a dataset with deaths from the most recent five-year interval (2014 to 2018), and plotted the number of deaths for each age group by hour of the day faceted by day of the week and gender. The results are depicted in Figure 3. For the middle-aged and older age groups (both men and women), more deaths occur in the afternoon, but for young men there is a sharp spike in the number of deaths at around midnight on Friday and Saturday nights. There is also a similar trend for young women, although it is less pronounced. An animated version of this plot showing data for all five-year intervals from 1989 is available as supplementary online content (http://rpubs.com/JoshMyers/Deaths-by-hour).
+
+```{r fig2, fig.align="left", include=T, fig.cap="\\label{fig:fig2}Figure 2. The number of deaths each year for each age group and gender."}
+# Age, gender plot----
+ggplot(road_data, aes(x=Year, colour=age_cat, linetype=Gender)) +
+  geom_line(stat = 'count') +
+  scale_colour_colorblind() +
+  scale_x_continuous(breaks = c(1990, 1995, 2000, 2005, 2010, 2015), labels = c('1990', '1995', '2000', '2005', '2010', '2015')) +
+  labs(colour='Age Group (years)') +
+  ylab('Number of Deaths') +
+  theme_minimal()
+
+# Proportion of young males in Australia----
+# proportion of population each age in 2018: https://www.abs.gov.au/AUSSTATS/abs@.nsf/DetailsPage/3101.0Jun%202018?OpenDocument
+age_2018 = read_excel('data/pop_2018.xls', sheet = 7, skip = 4)
+males_2018 = age_2018[2:23, c(1,10)]
+females_2018 = age_2018[25:46, c(1,10)]
+total_2018 = age_2018[48:69, c(1,10)]
+colnames(males_2018) = c("age_group", "Males")
+colnames(females_2018) = c("age_group", "Females")
+colnames(total_2018) = c("age_group", "Total")
+age_2018 = cbind.data.frame(males_2018, females_2018, total_2018)
+age_2018 = age_2018[,c(1,2,4,6)]
+age_2018 = age_2018 %>% 
+  mutate(prop_male = Males/Total, 
+         prop_female = Females/Total)
+
+total = age_2018[22,4]
+age_2018 = age_2018 %>% 
+  mutate(prop_total = Total/total)
+
+# so 20 to 39 
+prop_male_20_to_39 = age_2018 %>% 
+  filter(age_group %in% c("20–24",  "25–29", "30–34", "35–39")) %>% 
+  mutate(prop_male_total = prop_total*prop_male) %>% 
+  summarise(prop_male = sum(prop_male_total)) 
+# so 14% of population aged 20 to 39 in 2018 were males
+
+# but accounted for what proportion of deaths?
+twenty_to_39_deaths = road_data %>% 
+  filter(Year==2018) %>% 
+  group_by(Age, Gender) %>% 
+  tally() 
+
+total_deaths_2018 = twenty_to_39_deaths %>% 
+  summarise(total=sum(n)) %>% 
+  summarise(total=sum(total)) # 1141 deaths in 2018
+
+age_names = c('0 to 19', '20 to 39', '>=40' )
+age_deaths_2018 = twenty_to_39_deaths %>% 
+  mutate(Age_20_39 = cut(Age, breaks = c(-Inf, 19, 39, Inf), labels = age_names)) %>% 
+  group_by(Age_20_39, Gender) %>% 
+  tally()
+twenty_to_39_male_deaths_2018 = filter(age_deaths_2018, Age_20_39=='20 to 39', Gender=='Male') 
+# 319 deaths male 
+Prop_male_deaths_2018 = twenty_to_39_male_deaths_2018$n/total_deaths_2018$total 
+# Males in this age group account for 28% of deaths, but only 14% of population
+```
+
+The exploratory plots in Figure 1 (C & D) indicate that afternoons and weekends (Friday to Sunday) are the most dangerous times to drive. To further explore these relationships, I created a dataset with deaths from the most recent five-year interval (2014 to 2018), and plotted the number of deaths for each age group by hour of the day faceted by day of the week and gender. The results are depicted in Figure 3. For the middle-aged and older age groups (both men and women), more deaths occur in the afternoon, but for young men there is a sharp spike in the number of deaths at around midnight on Friday and Saturday nights. There is also a similar trend for young women, although it is less pronounced. 
+
+```{r fig3, fig.align="left", include=T, fig.cap="\\label{fig:fig3}Figure 3. The number of deaths each hour of the day by age group for females and males each day of the week for the five-year interval 2014 to 2018. The squiggly lines show the raw data, and loess smoothing lines were added using ggplot2’s geom_smooth function, to help to show trends in the data."}
+# Time of day
+road_data$hour_int = as.integer(road_data$time_of_day)  
+# 12 pm to 11am for plotting
+road_data$hour_int = factor(road_data$hour_int, levels = c(0:23)) 
+# animated by 5-year interval
+year_hour_day_p = road_data %>%
+  group_by(five_yr_interval, hour_int, Dayweek, age_cat, Gender) %>%
+  summarise(count=n()) %>%
+  ggplot(aes(x=hour_int, y=count, group=age_cat, colour=age_cat, frame = as.character(five_yr_interval))) +
+  geom_line(alpha=0.5) +
+  scale_x_discrete(breaks = c(0,6,12,18), labels = c('0', '6', '12', '18')) +
+  xlab('Time (24 hour)') +
+  geom_smooth(se=F, size=0.5, method = 'loess') +
+  labs(colour='Age (years)') +
+  ylab('Number of Deaths') +
+  scale_color_colorblind() +
+  facet_grid(rows=vars(Gender), cols = vars(Dayweek)) +
+  theme_minimal() +
+  theme(panel.spacing.x=unit(0, "lines"),panel.spacing.y=unit(1, "lines")) +
+  ggtitle("Year: {closest_state}") +
+  transition_states(as.character(five_yr_interval),
+                    transition_length = 2,
+                    state_length = 1)
+animate(year_hour_day_p, width = 900, height = 450)
+```
+
 Another interesting trend in the exploratory plots in Figure 1 was that NT seems over-represented in number of deaths. It has the smallest population of the states, but has had more deaths than both ACT and Tasmania. To further explore whether NT is over-represented, I plotted the number of deaths per 100,000 people for each state by year for females and males in each age group. The results are presented in Figure 4, and indicate that NT is the most dangerous state to drive in for all age groups of both genders apart from older adults (>60 years).
+
+```{r fig4, fig.align="left", include=T, fig.cap="\\label{fig:fig4}Figure 4. The number of road deaths per 100,000 people each year for each state by gender and age group. Note the log (base 10) scale of the y-axis. The squiggly lines show the raw data, and loess smoothing lines were added using ggplot2’s geom_smooth  function, to help to show trends in the data."}
+# Deaths by State per 100,000----
+deaths_by_year_state = road_data %>% 
+  mutate(age_cat = fct_recode(age_cat, 
+                              '0-16' = '0-16 years',
+                              '17-40' = '17-40 years', 
+                              '41-60' = '41-60 years', 
+                              '>60' = '>60 years')) %>% 
+  group_by(State, Year, age_cat, Gender) %>% 
+  tally(name = 'Deaths') 
+
+total_deaths = road_data %>% 
+  group_by(Year, age_cat, Gender) %>% 
+  tally(name = 'Deaths') 
+
+total_deaths$State = 'Total'
+deaths_by_year_state = rbind.data.frame(deaths_by_year_state, total_deaths)
+deaths_by_year_state$State = factor(deaths_by_year_state$State, levels = c('NSW', 'Vic', 'Qld', 'WA', 'SA', 'Tas', 'ACT', 'NT', 'Total'))
+
+state_pop_long = state_pop %>% 
+  gather(key='Year', value='Population', 2:31)
+names(state_pop_long)[1] = 'State'
+state_pop_long$Year = as.numeric(state_pop_long$Year)
+state_pop_long$State = factor(state_pop_long$State, levels = c('NSW', 'Vic', 'Qld', 'WA', 'SA', 'Tas', 'ACT', 'NT', 'Total'))
+
+# join deaths with state population info (so can normalize)
+death_pop = full_join(deaths_by_year_state, state_pop_long, by=c('State', 'Year'))
+
+# remove total for these graphs
+death_pop_states = death_pop %>% 
+  filter(State !='Total') 
+death_pop_states$State = fct_drop(death_pop_states$State)
+
+# Normalize for state population 
+death_pop_states = death_pop_states %>% 
+  mutate(death_proportion = Deaths / Population) %>% 
+  mutate(death_prop_per_100k = death_proportion * 100000)
+
+ggplot(death_pop_states, aes(x=Year, y=death_prop_per_100k, colour=State)) + 
+  geom_line(alpha=0.5) +
+  geom_smooth(method = 'loess', se=F, size=0.5) +
+  ylab('Number of Deaths per 100,000') +
+  scale_x_continuous(breaks = c(1990, 1995, 2000, 2005, 2010, 2015), labels = c('1990', '1995', '2000', '2005', '2010', '2015')) +
+  scale_colour_colorblind() +
+  scale_y_log10() +
+  facet_grid(age_cat~Gender) +
+  theme_minimal()
+```
 I was also interested in exploring whether certain types of vehicles were over-represented in the road deaths data, in particular, motorcycles and heavy vehicles. To investigate this, I calculated the proportion of deaths in 2018 involving motorcycles (rider or passenger), and for each of the heavy vehicles, and compared these to the proportion of these vehicle types reported in the motor vehicle census of 2018. The results are presented in Figure 5, and indicate that all of these vehicle types are over-represented. However, the heavy vehicles (buses, and heavy trucks) may spend more time on the road compared with the average vehicle. For example, a bus might drive for 8 hours a day, whereas most people may only drive their car to and from work each day. However, there is no reason to suspect that motorcycles spend disproportionately more time on the road compared to typical vehicles. According to the motor vehicle census of 2018, approximately 5% of registered vehicles on Australian roads were motorcycles, but motorcycle riders and passengers accounted for 17% of road deaths – over three times as many as would be expected given the proportion of motorcycles on the road. I hypothesised that a many of the motorcycle deaths may be young men, so calculated the percentage for this group – 65% of motorcycle deaths in the road deaths dataset were males aged 17–40 years.
+
+```{r fig5, fig.align="left", include=T, fig.cap="\\label{fig:fig5}Figure 5. The proportion of deaths in 2018 with motorcycle and heavy vehicle involvement in the road deaths dataset (Deaths), compared to the proportion of that type of vehicle reported in the motor vehicle census of 2018 (Population)."}
+
+# road user----
+road_data = road_data %>% 
+  mutate(User = ifelse(road_user=='Motorcycle pillion passenger'|road_user=='Motorcycle rider', 'Motorcycle',
+                       ifelse(road_user=='Driver'|road_user=='Passenger', 'Car/Truck', 
+                              ifelse(road_user=='Pedestrian', 'Pedestrian', 
+                                     ifelse(road_user=='Pedal cyclist', 'Cyclist', NA))))) 
+road_data$User = factor(road_data$User, levels = c('Car/Truck', 'Motorcycle', 'Pedestrian', 'Cyclist'))
+
+# what proportion of deaths in 2018 were MC?
+# remove pedestrian and cyclist - not included in MC census
+users_2018 = road_data %>% 
+  filter(Year==2018) %>% 
+  group_by(User) %>% 
+  tally()
+
+mc_prop_2018 = users_2018$n[2]/sum(users_2018$n)
+# Only 5% of vehicles on the road are mc, but they account for 17% of deaths 
+
+# proportion of trucks involved in crash compared with census 2018
+# bus, heavy rigid, articulated trucks
+# are any of these overrepresented?
+df_2018 = road_data %>% 
+  filter(Year==2018) 
+bus_deaths_2018 = summary(as.factor(df_2018$bus_involve))[2]
+total = nrow(df_2018)
+bus_prop_2018 = bus_deaths_2018/total # 0.02 of deaths, but 0.005 of vehicles on road # not heavily overrepresented (4 times as many) - and driving a lot of the time
+
+heavy_rigid_deaths_2018 = summary(as.factor(df_2018$heavy_rigid_involve))[2]
+heavy_rigid_prop_2018 = heavy_rigid_deaths_2018 / total # 0.06 of deaths (6%) and account for 0.018 (~2%) of vehicles (overrepresented 3 times as many)
+
+articulated_deaths_2018 = summary(as.factor(df_2018$articulated_involve))[2]
+articulated_prop_2018 = articulated_deaths_2018 / total # 0.079 of deaths (~8%) and account for 0.005 of vehicles (heavily overrepresented 16 times as many)
+
+deaths_2018 = c(mc_prop_2018, bus_prop_2018, heavy_rigid_prop_2018, articulated_prop_2018)
+props_2018 = cbind.data.frame(prop_pop, deaths_2018)
+names(props_2018) = c('Population', 'Deaths')
+props_2018$user = c('Motorcycle', 'Bus', 'Heavy Rigid Truck', 'Articulated Truck')
+
+# need to make long
+props_2018 %>% 
+  gather('Group', 'Proportion', 1:2) %>% 
+  mutate(Group = factor(Group, levels = c('Population', 'Deaths'))) %>% 
+  ggplot(aes(x=factor(user, levels=c('Bus', 'Heavy Rigid Truck', 'Articulated Truck', 'Motorcycle')), y=Proportion, colour=Group, fill=Group)) +
+    geom_bar(stat='identity', position = 'dodge') +
+    scale_color_manual(values=c("#E69F00", "#000000")) +
+    scale_fill_manual(values=c("#E69F00", "#000000")) +
+    scale_x_discrete(labels=c('Bus', 'Heavy Rigid', 'Articulated', 'Motorcycle')) +
+    xlab('Type of Vehicle') 
+
+# what proportion died in MC accidents are young men?
+mc_sex_age = road_data %>% 
+  filter(User == 'Motorcycle') 
+young_men_mc = mc_sex_age %>% 
+  filter(Gender == "Male", age_cat == '17-40') 
+prop_young_men_mc = dim(young_men_mc)[1] / dim(mc_sex_age)[1]
+```
 
 ## Conclusions
 The aim of this study was to identify trends and potential groups who may be at risk of dying on Australian roads. Results indicate that young men, Northern Territorians, and motorcycle users are over-represented in deaths on Australian roads, and around midnight on Friday and Saturday night is a particularly dangerous time to drive for young men.
