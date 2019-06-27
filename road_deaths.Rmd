@@ -1,8 +1,7 @@
 ---
-title: 'Young men are dying to drive'
-subtitle: 'Exploring road deaths in Australia'
-author: "Josh Myers"
-date: "27/06/2019"
+title: |
+  | Young men are dying to drive: 
+  | Exploring road deaths in Australia
 output: 
   html_document:
     includes:
@@ -10,31 +9,59 @@ output:
     css: style.css
     code_folding: hide
 ---
+<style type="text/css">
+
+h1.title {
+  font-size: 44px;
+  color: Black;
+  text-align: center;
+}
+h4.author { /* Header 4 - and the author and data headers use this too  */
+    font-size: 18px;
+  font-family: "Times New Roman", Times, serif;
+  color: Black;
+  text-align: center;
+}
+h4.date { /* Header 4 - and the author and data headers use this too  */
+  font-size: 18px;
+  font-family: "Times New Roman", Times, serif;
+  color: Black;
+  text-align: center;
+}
+</style>
+
+<style>
+p.caption {
+  font-size: 0.9em;
+  font-style: italic;
+  color: grey;
+  margin-right: 10%;
+  margin-left: 10%;  
+  text-align: justify;
+}
+</style>
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, include=FALSE, cache = TRUE)
+knitr::opts_chunk$set(cache = TRUE)
 ```
 
-## Abstract
-Road accidents in Australia carry enormous social and economic impacts, with an estimated cost of almost $30 billion each year. The aim of this analysis was to explore road deaths in Australia to identify trends in the data, and groups that may be more at risk of dying in road accidents. Data on the number of road deaths in Australia since 1989 were obtained from the Australian Road Deaths Database, supplemented with data from the Australian motor vehicle census of 2018, and population estimates for each age group and state in Australia. The road deaths dataset was explored for trends visually, and in order to identify potentially over-represented groups, the proportion of certain groups who died in road accidents was compared with the proportion of that group in the Australian population. These calculations were done for young men, Northern Territorians, motorcycle users, and heavy vehicles. For example, the proportion of road deaths who were young men was compared with the proportion of young men in the general population of Australia. Results indicated that young men, Northern Territorians, and motorcycle users are over-represented in road deaths, and that around midnight on Friday and Saturday night is a particularly dangerous time for young men to be on the road. These findings could be used to inform public policy, for example, by targeting young male drivers in road safety campaigns aimed at reducing the road toll.
-
-# Introduction
+## Introduction
 Road accidents in Australia carry enormous social and economic impacts, with an estimated cost of \$29.7 billion each year (Australian Automobile Association, 2017). A concerning trend was noticed from 2014 to 2017, with the road toll beginning to rise after decades of decline (Australian Automobile Association, 2017). The Australian Government recently committed an additional \$2.2 billion to road safety and established the Office of Road Safety to help address this issue (Prime Minister of Australia, 2019). 
 The Australian Road Deaths Database (ARDD) contains two datasets that are updated each month – the fatalities, and the fatal crashes datasets (Bureau of Infrastructure Transport and Regional Economics, 2019a). The aim of this study was to explore the fatalities dataset to identify trends in road deaths, and potential groups who may be more at risk of dying on Australian roads.
 
-# Data
+## Data
 ARDD fatalities is a structured dataset published each month by the Bureau of Infrastructure Transport and Regional Economics (BITRE). The April 2019 dataset contains records of 50,160 deaths that have occurred on Australian roads since January 1989 (Bureau of Infrastructure Transport and Regional Economics, 2019b). Data are collected each month from police reports to the state and territory road safety agencies. Each death in the dataset has associated information including a variable identifying the crash, the state where it occurred, temporal variables (year, month, day of the week, time of day), crash type (e.g., single, multiple, pedestrian), whether a heavy vehicle was involved (bus, heavy rigid, or articulated truck), the speed limit, the type of road user killed (e.g., driver, passenger, pedestrian), gender, age, the type of road (e.g., local road or highway), variables relating to the location (including the remoteness area, e.g., major city, outer regional), local government area, and whether the accident happened during the Easter or Christmas holiday periods. BITRE calculate the remoteness area, local government area and road type variables from the PSMA Transport Hierarchy (Table 15; PSMA Australia, 2015). The heavy vehicle involvement data (bus, heavy rigid, and articulated truck) is updated quarterly, not monthly, and the data for heavy rigid truck involvement prior to 2004 is incomplete. 
 Data from other sources were also used to supplement the analysis in this report. State population numbers from 1989 to 2016 were obtained from the Australian Bureau of Statistics (2016), and State population projections for 2017 and 2018 from the Australian Bureau of Statistics (2018c). Population statistics by age and gender for 2018 were sourced from the Australian Bureau of Statistics (2018a). Data estimating the total number of various registered vehicle types in Australia in 2018 (e.g., total numbers of cars, buses and motorcycles) were obtained from the Australian Bureau of Statistics (2018b). 
 
-# Methods
+## Methods
 The analysis was done using R (R Core Team, 2017) in the RStudio integrated development environment (RStudio Team, 2015), supplemented by the dplyr (Wickham, François, Henry, & Müller, 2019), ggplot2 (Wickham, 2009), mice (van Buuren & Groothuis-Oudshoorn, 2011) and lubridate (Grolemund & Wickham, 2011) packages. 
 
-## The road deaths dataset 
+### The road deaths dataset 
 The ARDD Fatalities dataset was downloaded from the Australian Government Open Data website using base R’s read.csv function (Australian Govenment, No date). Missing data were coded as “-9” or “Other/-9” in the dataset. Gender values of “unspecified” were also set as missing, since there was only one observation for gender with this value. 
 This report analyses the data from January 1989 to December 2018. Data from 2019 were removed using dplyr‘s filter function because much of the present analysis compares the number of deaths each year. This analysis used the variables: state, month, year, day of the week, time of day, road user, gender, age, and bus, heavy rigid, and articulated truck involvement. Other variables were removed from the dataset using dplyr's select function. State, day of the week, gender, road user, and bus, heavy rigid, and articulated truck involvement were coded as unordered factors using base R’s factor function. Time of day was converted to a numeric variable indicating the hour of the day (in 24-hour time). The lubridate package was used to convert it into hour and minute format with the hm function, and then the hour was extracted with the hour function. Age, year and month were coded as numeric integers. The subsetted dataset had 11 variables providing information on 49,730 motor vehicle deaths from January 1989 to December 2018.
 State, year, month, day of the week, bus, and articulated truck involvement had no missing values. Time of day had 40 missing values, road user had 77, gender had 22, and age had 84 missing values. In total, there were 218 observations with missing data for at least one of these variables (<1% of the dataset). Single imputation was used to assign missing values for these variables using the mice function from the mice library. Age and hour of the day were imputed using predictive mean matching, gender with logistic regression imputation, and road user with polytomous regression imputation. All variables apart from the heavy vehicle involvement variables were used to predict the missing values. Heavy rigid truck involvement had 20,493 missing values, but this analysis only used data from 2018 for the heavy vehicle involvement variables, of which none were missing, so missing values did not need to be imputed for this variable. Table 1 describes the data representation of the variables in the subsetted dataset, the number of missing values, summary statistics prior to imputation for variables that had missing values, and a summary of the imputed values. I refer to the subsetted, imputed dataset as the "road deaths dataset" in this report. 
 
-```{r fig1, fig.align="left", fig.width=20, fig.height=7, fig.fullwidth=T, include=T, fig.cap="\\label{fig:fig1}Figure 1. Density plots for variables in the road deaths dataset, except for the heavy vehicle variables. The y-axis for all plots shows the count, except for plot H, for which count is the x-axis. A bin width of 1 was chosen for year and hour of the day, and 5 for age. The x-axis for state is ordered from the largest to smallest population. MC = motorcycle."}
+```{r, echo=T, message=FALSE}
 library(tidyverse)
 library(ggthemes)
 library(lubridate)
@@ -98,7 +125,7 @@ meth[c('Gender')]="logreg"
 meth[c('Age')]="pmm"
 meth[c('time_of_day')]="pmm"
 
-imputed = mice(road_data, method=meth, predictorMatrix=predM, m=1)
+imputed = mice(road_data, method=meth, predictorMatrix=predM, m=1, printFlag = F)
 road_data <- complete(imputed)
 
 # create new variables age group and 5-year interval----
@@ -159,6 +186,9 @@ heavy_rigid_prop = heavy_rigid/total
 articulated = mv_census[6]
 articulated_prop = articulated/total
 prop_pop = rbind(mc_prop, bus_prop, heavy_rigid_prop, articulated_prop)
+```
+
+```{r fig1, echo=T, fig.align="left", fig.width=11, fig.height=9, fig.fullwidth=T, include=T, fig.cap="\\label{fig:fig1}Figure 1. Density plots for variables in the road deaths dataset, except for the heavy vehicle variables. The y-axis for all plots shows the count, except for plot H, for which count is the x-axis. A bin width of 1 was chosen for year and hour of the day, and 5 for age. The x-axis for state is ordered from the largest to smallest population. MC = motorcycle."}
 
 # Exploratory distribution plots
 # plots showing the variation in Age, Gender, State, Year, Month, Dayweek, time_of_day, road_user
@@ -215,16 +245,16 @@ user_p =  ggplot(road_data, aes(road_user)) +
   scale_x_discrete(labels=c("Driver", "Passenger", "Pedestrian", "MC rider", "Cyclist", "MC passenger")) +
   coord_flip()
 
-plot_grid(year_p, month_p, day_p, time_p, age_dist, sex_p, state_p, user_p, ncol=4, labels=c(LETTERS[1:8]))
+plot_grid(year_p, month_p, day_p, time_p, age_dist, sex_p, state_p, user_p, ncol=3, labels=c(LETTERS[1:8]))
 ```
 
 Figure 1 shows the distribution of the variables year, month, day of the week, hour of the day, age, gender, state, and type of road user in the road deaths dataset. There are no apparent issues with the data – factors have the expected categories, and there are no obviously incorrect outliers (e.g., the maximum year is 2018, and maximum hour is 23, as expected). The plot for year shows that the number of deaths has significantly decreased since 1989. In recent years, the number of deaths increased from 2014 to 2016, but then decreased again in 2017 and 2018, with numbers for 2018 similar to 2014. Friday, Saturday and Sunday have more deaths than other days of the week, and the afternoon appears to be the most dangerous time to be on the road, with a peak in the distribution at around 3 pm, and a secondary peak at around midnight. Young people and males seem to be over-represented – there is a large peak in the distribution for age at around 20 years, and around 70% of deaths have been males.  The plot for state generally shows that the number of deaths decreases with state population, apart from the Northern Territory (NT), which has the smallest population, but more deaths than both the Australian Capital Territory (ACT) and Tasmania. Buses were involved in 941 deaths, and articulated trucks in 5,071 deaths. Heavy rigid trucks were involved in 1,400 deaths, although, as mentioned, there were many missing values for this variable (>20,000).
 Age and year were used to create two new discrete variables using dplyr‘s mutate function in conjunction with base R’s cut function. “five-year interval” was created by dividing year into five-year segments, and “age group”, was created by splitting age into four groups, 0–16, 17–40, 41–60 and >60 years. These categories were chosen to reflect stages of life: child, young adult of driving age, middle-aged, and older adult. 
 
-## Supplemental data
+### Supplemental data
 State population data from 1989 to 2016 were obtained from the Australian Bureau of Statistics (2016), and population projections for 2017 to 2018 from the Australian Bureau of Statistics (2018c). These datasets were downloaded as Excel files, imported using readxl‘s read_excel function, then joined together using base R’s cbind function. This is referred to as the "state population dataset" in this report. The number of males in Australia aged 20 to 39 in 2018 and the total population of Australia for 2018 were obtained from the Australian Bureau of Statistics (2018a), again as an Excel file imported using read_excel. This is referred to as the “2018 population data”. The motor vehicle census for 2018 was also downloaded as an Excel file from the Australian Bureau of Statistics (2018b). Data from Table 1, 2018 was used, which reports the number of various different types of vehicles for the 19.2 million registered motor vehicles in Australia. This dataset is referred to as the "motor vehicle dataset" in this report. 
 
-## Data analysis
+### Data analysis
 The exploratory plots in Figure 1 showed some interesting trends in road deaths. In particular, young people (Fig. 1E) and males (Fig. 1F) seem to be over-represented. This was further explored by plotting the number of deaths each year, after grouping by age group and gender, with ggplot2’s ggplot function. Since young men seemed to be over-represented, I calculated the proportion of the road deaths dataset in 2018 who were males aged 20 to 39 using dplyr's mutate, group_by, tally and filter functions, and compared this with the proportion of young men of that age in all of Australia using the 2018 population data. 
 Another trend in Figure 1 (C & D) was that weekends and afternoons seem to be more dangerous times to drive. To further explore this, I created a dataset that included road deaths for the most recent five-year interval (2014 to 2018) using dplyr’s filter function. These data were grouped by hour of the day, day of the week, age group, and gender, and the number of deaths was counted for each group using dplyr’s summarise and n functions. These data were plotted for each hour of the day by age group, faceted by gender and day of the week using ggplot2. I also created an online version of this plot that shows results for each of the five-year intervals since 1989. 
 NT seemed to be over-represented in the exploratory plots, since it had more road deaths than two states with higher populations (Figure 1G). To further explore the relationship between road deaths and state, a dataset was created that counted the number of deaths in each state every year using the group_by and tally functions from dplyr. This dataset was joined to the state population dataset using dplyr's full_join function, after reshaping the state population dataset into long form using tidyr's gather function (the original dataset had a column for each year, which was converted into a single “year” column). The combined dataset was used to calculate the number of deaths per 100,000 people for each state, by year. This calculation was done with dplyr's mutate function, and involved dividing the number of deaths each for each state by the state population for that year, then multiplying by 100,000. The number of deaths per 100,000 people was then plotted for each state, faceted by age group and gender using the ggplot2 library.
@@ -234,7 +264,7 @@ The code for the analysis is available online (https://github.com/Josh-Myers/JCU
 ## Results and Discussion
 The number of deaths each year for females and males in each age group is depicted in Figure 2. There has been a general decrease in number of deaths over time, especially for young men, and also females and children. The number of deaths for middle-aged men has remained fairly constant overtime, however, and although the numbers for older men decreased from around 1995, they have been increasing since 2010. The most striking feature of this plot is the number of young men who have died on Australian roads compared to other groups. To quantify the extent to which this group is over-represented, I calculated the proportion of deaths in 2018 who were males aged 20 to 39 in the road deaths dataset, and compared this with the proportion of males that age in the general population of Australia in 2018. Young men aged 20 to 39 accounted for 28% of deaths, but only 14% of the population of Australia in 2018 – twice as many as would be expected given the proportion in the general population. 
 
-```{r fig2, fig.align="left", include=T, fig.cap="\\label{fig:fig2}Figure 2. The number of deaths each year for each age group and gender."}
+```{r fig2, echo=T, fig.align="left", include=T, fig.cap="\\label{fig:fig2}Figure 2. The number of deaths each year for each age group and gender."}
 # Age, gender plot----
 ggplot(road_data, aes(x=Year, colour=age_cat, linetype=Gender)) +
   geom_line(stat = 'count') +
@@ -243,7 +273,9 @@ ggplot(road_data, aes(x=Year, colour=age_cat, linetype=Gender)) +
   labs(colour='Age Group (years)') +
   ylab('Number of Deaths') +
   theme_minimal()
+```
 
+```{r, echo=T, message=F}
 # Proportion of young males in Australia----
 # proportion of population each age in 2018: https://www.abs.gov.au/AUSSTATS/abs@.nsf/DetailsPage/3101.0Jun%202018?OpenDocument
 age_2018 = read_excel('data/pop_2018.xls', sheet = 7, skip = 4)
@@ -293,7 +325,7 @@ Prop_male_deaths_2018 = twenty_to_39_male_deaths_2018$n/total_deaths_2018$total
 
 The exploratory plots in Figure 1 (C & D) indicate that afternoons and weekends (Friday to Sunday) are the most dangerous times to drive. To further explore these relationships, I created a dataset with deaths from the most recent five-year interval (2014 to 2018), and plotted the number of deaths for each age group by hour of the day faceted by day of the week and gender. The results are depicted in Figure 3. For the middle-aged and older age groups (both men and women), more deaths occur in the afternoon, but for young men there is a sharp spike in the number of deaths at around midnight on Friday and Saturday nights. There is also a similar trend for young women, although it is less pronounced. 
 
-```{r fig3, fig.align="left", include=T, fig.cap="\\label{fig:fig3}Figure 3. The number of deaths each hour of the day by age group for females and males each day of the week for the five-year interval 2014 to 2018. The squiggly lines show the raw data, and loess smoothing lines were added using ggplot2’s geom_smooth function, to help to show trends in the data."}
+```{r fig3, echo=T, fig.align="left", include=T, fig.cap="\\label{fig:fig3}Figure 3. The number of deaths each hour of the day by age group for females and males each day of the week for the five-year interval 2014 to 2018. The squiggly lines show the raw data, and loess smoothing lines were added using ggplot2’s geom_smooth function, to help to show trends in the data."}
 # Time of day
 road_data$hour_int = as.integer(road_data$time_of_day)  
 # 12 pm to 11am for plotting
@@ -322,14 +354,14 @@ animate(year_hour_day_p, width = 900, height = 450)
 
 Another interesting trend in the exploratory plots in Figure 1 was that NT seems over-represented in number of deaths. It has the smallest population of the states, but has had more deaths than both ACT and Tasmania. To further explore whether NT is over-represented, I plotted the number of deaths per 100,000 people for each state by year for females and males in each age group. The results are presented in Figure 4, and indicate that NT is the most dangerous state to drive in for all age groups of both genders apart from older adults (>60 years).
 
-```{r fig4, fig.align="left", include=T, fig.cap="\\label{fig:fig4}Figure 4. The number of road deaths per 100,000 people each year for each state by gender and age group. Note the log (base 10) scale of the y-axis. The squiggly lines show the raw data, and loess smoothing lines were added using ggplot2’s geom_smooth  function, to help to show trends in the data."}
+```{r fig4, echo=T, fig.align="left", include=T, fig.cap="\\label{fig:fig4}Figure 4. The number of road deaths per 100,000 people each year for each state by gender and age group. Note the log (base 10) scale of the y-axis. The squiggly lines show the raw data, and loess smoothing lines were added using ggplot2’s geom_smooth  function, to help to show trends in the data."}
 # Deaths by State per 100,000----
 deaths_by_year_state = road_data %>% 
   mutate(age_cat = fct_recode(age_cat, 
-                              '0-16' = '0-16 years',
-                              '17-40' = '17-40 years', 
-                              '41-60' = '41-60 years', 
-                              '>60' = '>60 years')) %>% 
+                              '0-16 years' = '0-16',
+                              '17-40 years' = '17-40', 
+                              '41-60 years' = '41-60', 
+                              '>60 years' = '>60')) %>% 
   group_by(State, Year, age_cat, Gender) %>% 
   tally(name = 'Deaths') 
 
@@ -372,7 +404,7 @@ ggplot(death_pop_states, aes(x=Year, y=death_prop_per_100k, colour=State)) +
 ```
 I was also interested in exploring whether certain types of vehicles were over-represented in the road deaths data, in particular, motorcycles and heavy vehicles. To investigate this, I calculated the proportion of deaths in 2018 involving motorcycles (rider or passenger), and for each of the heavy vehicles, and compared these to the proportion of these vehicle types reported in the motor vehicle census of 2018. The results are presented in Figure 5, and indicate that all of these vehicle types are over-represented. However, the heavy vehicles (buses, and heavy trucks) may spend more time on the road compared with the average vehicle. For example, a bus might drive for 8 hours a day, whereas most people may only drive their car to and from work each day. However, there is no reason to suspect that motorcycles spend disproportionately more time on the road compared to typical vehicles. According to the motor vehicle census of 2018, approximately 5% of registered vehicles on Australian roads were motorcycles, but motorcycle riders and passengers accounted for 17% of road deaths – over three times as many as would be expected given the proportion of motorcycles on the road. I hypothesised that a many of the motorcycle deaths may be young men, so calculated the percentage for this group – 65% of motorcycle deaths in the road deaths dataset were males aged 17–40 years.
 
-```{r fig5, fig.align="left", include=T, fig.cap="\\label{fig:fig5}Figure 5. The proportion of deaths in 2018 with motorcycle and heavy vehicle involvement in the road deaths dataset (Deaths), compared to the proportion of that type of vehicle reported in the motor vehicle census of 2018 (Population)."}
+```{r fig5, echo=T, fig.align="left", include=T, fig.cap="\\label{fig:fig5}Figure 5. The proportion of deaths in 2018 with motorcycle and heavy vehicle involvement in the road deaths dataset (Deaths), compared to the proportion of that type of vehicle reported in the motor vehicle census of 2018 (Population)."}
 
 # road user----
 road_data = road_data %>% 
@@ -436,7 +468,7 @@ The aim of this study was to identify trends and potential groups who may be at 
 A limitation of this study is that it was exploratory in nature, containing no statistical analysis. Also, due to space limitations, I was not able to analyse all of the variables in the road deaths dataset, notably the location variables, which may contain further insights into road deaths in Australia. For example, it would be interesting to investigate whether there are certain regions of NT that are particularly dangerous. Although it appeared that heavy vehicles were over-represented when compared to the census data, this was not a realistic comparison, since heavy vehicles probably spend more time on the road compared to a typical vehicle. A more sophisticated analysis using further supplemental data, perhaps with weightings for the various heavy vehicle types, may be able to further investigate whether heavy vehicles are over-represented in road deaths. 
 The results of this analysis could be used to inform public policy, for example, by targeting young male drivers in campaigns aimed at improving road safety in Australia.
 
-# References
+## References
 Australian Automobile Association (2017). Cost of Road Trauma in Australia. Retrieved from https://www.aaa.asn.au/wp-content/uploads/2018/03/AAA-ECON_Cost-of-road-trauma-summary-report_Sep-2017.pdf
 
 Australian Bureau of Statistics (2016). Australian Historical Population Statistics, 2016: Population Size and Growth. Retrieved from: https://www.abs.gov.au/AUSSTATS/abs@.nsf/DetailsPage/3105.0.65.0012016?OpenDocument
