@@ -6,6 +6,7 @@ library(cowplot)
 library(Hmisc)
 library(mice)
 library(readxl)
+library(scales)
 theme_set(theme_minimal())
 
 # 1. Import and impute road death data----
@@ -163,37 +164,44 @@ a = summary(road_data$articulated_involve)
 age_dist = ggplot(road_data, aes(Age)) +
   geom_histogram(binwidth = 5) +
   ylab('') + 
+  scale_y_continuous(labels = comma) +
   xlab('Age (years)')
 
 sex_p = ggplot(road_data, aes(Gender)) +
   geom_bar() +
+  scale_y_continuous(labels = comma) +
   ylab('') 
 
 state_p = ggplot(road_data, aes(State)) +
-  geom_bar() + # interesting NT has more than act or tas even though lowest population (ordered by population)
+  geom_bar() + # interesting NT has more than act or tas even though lowest population (ordered by population) 
+  scale_y_continuous(labels = comma) +
   ylab('') 
 
 year_p = ggplot(road_data, aes(Year)) +
   geom_histogram(binwidth = 1) + 
-  scale_x_continuous(breaks = c(1980, 1985, 1990, 1995, 2000, 2005, 2010, 2015), labels = c(1980, 1985, 1990, 1995, 2000, 2005, 2010, 2015)) +
+  scale_x_continuous(breaks = c(1990, 1995, 2000, 2005, 2010, 2015), labels = c(1990, 1995, 2000, 2005, 2010, 2015)) +
+  scale_y_continuous(labels = comma) +
   ylab('')
 
 month_p = ggplot(road_data, aes(as.factor(Month))) +
   geom_bar() +
   ylab('') +
   xlab('Month') +
-  scale_x_discrete(labels = 'month.abb')
+  scale_y_continuous(labels = comma) +
+  scale_x_discrete(labels = month.abb)
 
 day_p = ggplot(road_data, aes(Dayweek)) +
   geom_bar() +
   scale_x_discrete(labels=c("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")) +
+  scale_y_continuous(labels = comma) +
   ylab("") +
-  scale_x_continuous(breaks = c(0, 6, 12, 18))
   xlab("Day of the Week") 
 
 time_p = ggplot(road_data, aes(time_of_day)) +
   geom_histogram(binwidth = 1) +
   ylab("") +
+  scale_x_continuous(breaks = c(0, 6, 12, 18)) +
+  scale_y_continuous(labels = comma) +
   xlab("Hour of the Day (24 hour)")
 
 road_data$road_user = fct_infreq(road_data$road_user) 
@@ -201,6 +209,7 @@ user_p =  ggplot(road_data, aes(road_user)) +
   geom_bar() +
   ylab("") +
   xlab("Type of Road User") + 
+  scale_y_continuous(labels = comma) +
   scale_x_discrete(labels=c("Driver", "Passenger", "Pedestrian", "MC rider", "Cyclist", "MC passenger")) +
   coord_flip()
 
@@ -212,7 +221,7 @@ age_p = ggplot(road_data, aes(x=Year, colour=age_cat, linetype=Gender)) +
   geom_line(stat = 'count') +
   scale_colour_colorblind() +
   scale_x_continuous(breaks = c(1990, 1995, 2000, 2005, 2010, 2015), labels = c('1990', '1995', '2000', '2005', '2010', '2015')) +
-  labs(colour='Age Group') +
+  labs(colour='Age Group (years)') +
   ylab('Number of Deaths') 
 #ggtitle('Number of Deaths Each Year by Age and Gender') +
 #theme(plot.title = element_text(face='bold', hjust = 0.5, vjust = 0.5)) 
@@ -329,7 +338,9 @@ hour_day_p = road_data %>%
   labs(colour='Age (years)') +
   ylab('Number of Deaths') +
   scale_color_colorblind() +
-  facet_grid(rows=vars(Gender), cols = vars(Dayweek)) 
+  facet_grid(rows=vars(Gender), cols = vars(Dayweek)) +
+  theme(panel.spacing.x=unit(0, "lines"),panel.spacing.y=unit(1, "lines")) 
+hour_day_p
 #ggtitle('Number of Deaths by Day and Time') +
 #theme(plot.title = element_text(face='bold', hjust = 0.5, vjust = 0.5)) 
 hour_day_p  # big peaks ~midnight for males 17-40, lesser so for females
@@ -337,9 +348,9 @@ ggsave('hour_day_age.tiff', hour_day_p, width = 7, height = 4, dpi = 300, units=
 
 # animated by 5-year interval
 library(gganimate)
-year_hour_day_p = road_data %>% 
-  group_by(five_yr_interval, hour_int, Dayweek, age_cat, Gender) %>% 
-  summarise(count=n()) %>% 
+year_hour_day_p = road_data %>%
+  group_by(five_yr_interval, hour_int, Dayweek, age_cat, Gender) %>%
+  summarise(count=n()) %>%
   ggplot(aes(x=hour_int, y=count, group=age_cat, colour=age_cat, frame = as.character(five_yr_interval))) +
   geom_line(alpha=0.5) +
   scale_x_discrete(breaks = c(0,6,12,18), labels = c('0', '6', '12', '18')) +
@@ -349,12 +360,13 @@ year_hour_day_p = road_data %>%
   ylab('Number of Deaths') +
   scale_color_colorblind() +
   facet_grid(rows=vars(Gender), cols = vars(Dayweek)) +
+  theme(panel.spacing.x=unit(0, "lines"),panel.spacing.y=unit(1, "lines")) +
   ggtitle("Year: {closest_state}") +
   transition_states(as.character(five_yr_interval),
                     transition_length = 2,
                     state_length = 1)
-animate(year_hour_day_p, width = 900, height = 450) 
-
+animate(year_hour_day_p, width = 900, height = 450)
+anim_save("hour_animate.gif")
 # 8. road user----
 summary(road_data$road_user)
 
